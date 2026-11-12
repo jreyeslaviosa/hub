@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Project Workspace</title>
+<style>
+:root{color-scheme:light;--ink:#23332a;--muted:#556257;--line:#daddd1;--paper:#f7f7f0;--panel:#eeefe5;--green:#304b3b;font:15px/1.5 "Instrument Sans",system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink)}a{color:inherit}button,input,select{font:inherit;color:inherit}button,select,summary{cursor:pointer}a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+header{position:sticky;top:0;z-index:2;background:var(--paper);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:20px;padding:14px clamp(16px,4vw,54px)}.brand{text-decoration:none;font-weight:650;display:flex;align-items:center;gap:10px}.mark{display:grid;place-items:center;background:var(--green);color:white;width:32px;height:32px;border-radius:5px;font-size:13px}nav{display:flex;align-items:center;gap:8px}nav a,summary{display:block;padding:7px 10px;border-radius:5px;text-decoration:none}nav a[aria-current],summary:hover,nav a:hover{background:var(--panel)}details{position:relative}summary{list-style:none;white-space:nowrap}summary::-webkit-details-marker{display:none}.menu{position:absolute;right:0;top:calc(100% + 8px);width:185px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:5px;box-shadow:0 10px 30px #23332a16}
+main{max-width:1600px;margin:auto;padding:30px clamp(16px,4vw,54px) 40px}.heading{display:flex;align-items:end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:20px}h1{font-size:clamp(32px,5vw,58px);font-weight:550;line-height:1;letter-spacing:-.05em;margin:0 0 9px}p{margin:0;color:var(--muted)}.button{display:inline-block;padding:8px 13px;border-radius:5px;background:var(--green);color:white;text-decoration:none;border:1px solid transparent}.workbench{border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--panel)}.bar{display:flex;gap:6px;padding:8px 12px;background:#fff;border-bottom:1px solid var(--line)}.bar button{background:transparent;border:0;border-radius:5px;padding:6px 12px}.bar [aria-pressed=true]{background:var(--panel);font-weight:600}iframe:not([hidden]){display:block;width:100%;height:clamp(490px,74vh,1050px);border:0}.empty{padding:28px;color:var(--muted)}.riders{background:white;padding:20px;border:1px solid var(--line);border-radius:8px}.riders label{display:block;margin-bottom:6px}.riders input[type=search]{width:min(100%,370px);padding:8px 10px;border:1px solid var(--line);border-radius:5px;background:var(--paper);margin-bottom:14px}.riders ul{padding:0;margin:0;list-style:none}.riders li{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;border-top:1px solid var(--line)}.riders li span{color:var(--muted);display:block;font-size:.9rem}
+@media(max-width:500px){header{gap:6px;padding-inline:12px}nav{gap:1px}nav a,summary{padding:7px 6px}.mark{display:none}main{padding-top:23px}}
+</style>
+</head>
+<body>
+<header>
+<a class="brand" href="#snug"><span class="mark" aria-hidden="true">P</span>Project Workspace</a>
+<nav aria-label="Workspace">
+<details id="projects"><summary>Projects <span aria-hidden="true">⌄</span></summary><div class="menu" id="project-links"></div></details>
+<a href="#tech-riders" id="all-riders">Tech Riders</a>
+</nav>
+</header>
+<main id="main"></main>
+<script>
+const projects = {
+  snug: { name: 'Snug', description: 'Gallery layout and display planning', url: './snug/' },
+  'site-planning': { name: 'Site Planning', description: 'Site measurements and artwork placement', url: './site-planning/' },
+  giftshop: { name: 'Gift Shop', description: 'Room layout and fixture planning', url: './giftshop/' },
+  detroitpool: { name: 'Detroit Pool', description: 'McDougall Church cable, pool load and power planning', url: './detroitpool/' }
+};
+
+// Add approved PDFs with a title, project key, and a relative PDF path or download URL.
+const riders = [
+  { title: 'Snug · MAD Labs Video Tech Rider', project: 'snug', url: './riders/SNUG-MAD-Labs-Tech-Rider.txt', format: 'TXT' }
+];
+const main = document.querySelector('#main');
+const menu = document.querySelector('#projects');
+const links = document.querySelector('#project-links');
+
+for (const [id, project] of Object.entries(projects)) {
+  const link = document.createElement('a');
+  link.href = '#' + id;
+  link.textContent = project.name;
+  links.append(link);
+}
+
+document.querySelector('nav').addEventListener('click', event => {
+  if (event.target.closest('a')) menu.open = false;
+});
+document.addEventListener('click', event => {
+  if (!menu.contains(event.target)) menu.open = false;
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && menu.open) {
+    menu.open = false;
+    menu.querySelector('summary').focus();
+  }
+});
+
+function showRiders(target, projectId) {
+  target.innerHTML = '<div class="riders"><label for="rider-search">Search tech riders</label><input type="search" id="rider-search"><p role="status"></p><ul></ul></div>';
+  const search = target.querySelector('input');
+  const status = target.querySelector('[role=status]');
+  const list = target.querySelector('ul');
+  const available = riders.filter(rider => !projectId || rider.project === projectId);
+  search.disabled = available.length === 0;
+  function filterRiders() {
+    const query = search.value.trim().toLowerCase();
+    const matches = available.filter(rider => (rider.title + ' ' + (projects[rider.project]?.name || '')).toLowerCase().includes(query));
+    status.textContent = available.length === 0 ? 'No tech riders for this project yet.' : matches.length + (matches.length === 1 ? ' rider' : ' riders');
+    list.replaceChildren();
+    for (const rider of matches) {
+      const item = document.createElement('li');
+      const label = document.createElement('div');
+      label.textContent = rider.title;
+      const project = document.createElement('span');
+      project.textContent = projects[rider.project]?.name || '';
+      label.append(project);
+      const link = document.createElement('a');
+      link.className = 'button';
+      link.href = rider.url;
+      link.download = '';
+      link.textContent = 'Download ' + rider.format;
+      item.append(label, link);
+      list.append(item);
+    }
+  }
+  search.addEventListener('input', filterRiders);
+  filterRiders();
+}
+
+function render() {
+  const requested = location.hash.slice(1);
+  const id = requested === 'tech-riders' || Object.hasOwn(projects, requested) ? requested : 'snug';
+  for (const link of document.querySelectorAll('nav a')) {
+    if (link.hash === '#' + id) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  }
+
+  if (id === 'tech-riders') {
+    document.title = 'Tech Riders · Project Workspace';
+    main.innerHTML = '<div class="heading"><div><h1>Tech Riders</h1><p>Technical documents across projects</p></div></div><section id="rider-list" aria-label="Tech riders"></section>';
+    showRiders(document.querySelector('#rider-list'));
+    return;
+  }
+
+  const project = projects[id];
+  document.title = project.name + ' · Project Workspace';
+  main.innerHTML = '<div class="heading"><div><h1></h1><p></p></div><a class="button" target="_blank" rel="noopener">Open full screen ↗</a></div><section class="workbench" aria-label="Project workspace"><div class="bar" aria-label="Project sections"><button type="button" aria-pressed="true">Planner</button><button type="button" aria-pressed="false">Tech riders</button></div><iframe allowfullscreen></iframe><div id="project-riders" hidden></div></section>';
+  main.querySelector('h1').textContent = project.name;
+  main.querySelector('p').textContent = project.description;
+  main.querySelector('a').href = project.url;
+  const frame = main.querySelector('iframe');
+  frame.title = project.name + ' planner';
+  frame.src = project.url;
+  const [planner, files] = main.querySelectorAll('.bar button');
+  const filesPanel = main.querySelector('#project-riders');
+  function select(showFiles) {
+    planner.setAttribute('aria-pressed', String(!showFiles));
+    files.setAttribute('aria-pressed', String(showFiles));
+    frame.hidden = showFiles;
+    filesPanel.hidden = !showFiles;
+  }
+  planner.addEventListener('click', () => select(false));
+  files.addEventListener('click', () => select(true));
+  showRiders(filesPanel, id);
+}
+
+addEventListener('hashchange', render);
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>McDougall Church · 3D Cable Planner</title>
+<style>
+*{box-sizing:border-box}
+:root{color-scheme:light;--ink:#151515;--muted:#535b60;--line:#dedfe1;--panel:#ffffff;--control:#f6f7f7;--accent:#153c32}
+body{margin:0;background:#ffffff;color:var(--ink);font:14px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}
+header{border-bottom:1px solid var(--line);background:#ffffff}
+.masthead{max-width:1660px;margin:auto;padding:19px clamp(16px,3vw,42px);display:flex;gap:14px;align-items:center}
+.brand{width:44px;height:44px;display:grid;place-items:center;border:1px solid #b8ceca;border-radius:12px;color:var(--accent);background:#edf5f2;font-size:22px}
+h1,h2,p{margin:0}
+h1{font-size:clamp(20px,3vw,27px);letter-spacing:-.055em;line-height:1.2}
+h2{font-size:14px;letter-spacing:-.01em}
+.eyebrow{color:var(--accent);font-size:10px;letter-spacing:.16em;font-weight:750;margin-bottom:3px}
+.muted{color:var(--muted)}
+main{display:grid;grid-template-columns:minmax(0,1fr) minmax(290px,350px);gap:16px;padding:18px clamp(12px,2.5vw,34px);max-width:1660px;margin:auto;align-items:start}
+.panel{min-width:0;border:1px solid var(--line);border-radius:17px;background:var(--panel);overflow:hidden}
+.viewport{position:sticky;top:14px}
+.toolbar,.legend{padding:11px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.toolbar{justify-content:space-between;border-bottom:1px solid var(--line)}
+.views,.grid-controls{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.views{padding:3px;border-radius:10px;background:#f2f3f3;border:1px solid var(--line)}
+.views button{border-color:transparent;background:transparent;padding:6px 10px}
+.views button[aria-pressed=true]{background:#202725;color:#ffffff}
+canvas{display:block;width:100%;height:clamp(390px,66vh,740px);touch-action:none;background:radial-gradient(ellipse at 50% 44%,#ffffff,#f5f6f6 72%)}
+.legend{border-top:1px solid var(--line);font-size:12px;gap:8px 14px}
+.legend .hint{flex-basis:100%}
+.route{color:#167254}.drop{color:#a34814}
+.editor section{padding:14px 16px;border-bottom:1px solid var(--line);display:grid;gap:9px}
+.editor section:last-child{border-bottom:0}
+.section-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.section-title h2{overflow-wrap:anywhere}
+.kicker{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.14em;font-weight:750}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+label{display:grid;gap:4px;font-size:12px;color:var(--muted);min-width:0}
+input,button,select{font:inherit;color:var(--ink);background:var(--control);border:1px solid #c8ccce;border-radius:8px;padding:7px 9px;min-width:0}
+input:disabled,button:disabled,select:disabled{opacity:.48}
+button:not(:disabled){cursor:pointer}
+button:not(:disabled):hover,button[aria-pressed=true]{background:#e5ece9;border-color:#899c94}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{font-size:12px;color:var(--accent);background:#eef6f1;border-color:#a4c9ba;font-weight:650}
+button.danger{color:#a42c36}
+.grid-controls label{display:flex;align-items:center;gap:5px;margin-left:6px}
+.grid-controls input[type=number]{width:66px;padding:5px}
+input[type=checkbox]{accent-color:#167254}
+.runs{display:grid;gap:5px;max-height:230px;overflow:auto}
+.runs:empty{display:none}
+.runs button{display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;padding:6px 9px}
+.runs button strong{font-variant-numeric:tabular-nums;font-size:12px}
+.help{line-height:1.5;font-size:12px}
+#details:not(:empty){padding:8px 10px;background:#f0f5f3;border-radius:8px;color:#1e4238}
+#importStatus:empty{display:none}
+@media(max-width:960px){.viewport{position:static}}
+@media(max-width:760px){main{grid-template-columns:1fr}canvas{height:clamp(360px,57vh,520px)}}
+.mount-floor{--mount-color:#1f5da5}.mount-elevated{--mount-color:#167254}
+.mount-key::before{content:"";display:inline-block;width:.7em;height:.7em;margin-right:.45em;border-radius:50%;background:var(--mount-color)}
+.runs button span{color:var(--mount-color)}
+#report{display:none}.runs button span{overflow-wrap:anywhere}.runs button strong{white-space:nowrap}
+@media print{
+ @page{margin:15mm}
+ body{color-scheme:light;background:white;color:#15282d}
+ body>header,main{display:none}
+ #report{display:block;font:11pt ui-monospace,monospace}
+ #report h1{font-size:23pt;margin-bottom:8pt}
+ #report p{margin:8pt 0}
+ #report figure{margin:12pt 0;break-inside:avoid}
+ #report svg{display:block;width:100%;height:122mm}
+ #report figcaption{font-size:9pt;margin-top:5pt}
+ #report table{width:100%;border-collapse:collapse}
+ #report th,#report td{text-align:left;padding:6pt;border-bottom:1px solid #bbc9ca;overflow-wrap:anywhere}
+ #report tr{break-inside:avoid}
+ #report thead{display:table-header-group}
+ #report td:nth-last-child(-n+2){white-space:nowrap}
+}
+.workspace-nav{max-width:1660px;margin:auto;padding:0 clamp(16px,3vw,42px) 10px;display:flex;gap:6px}
+#poolView{width:100%;border:0;display:block;min-height:720px}
+#poolView[hidden],main[hidden]{display:none}
+@media print{#poolView,.workspace-nav{display:none!important}}
+#powerView{max-width:1100px;margin:auto;padding:20px clamp(12px,3vw,34px);display:grid;gap:16px}
+#powerView[hidden]{display:none}
+.power-card{padding:16px;display:grid;gap:12px}
+.power-grid,.power-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(155px,100%),1fr));gap:12px}
+.power-metrics div{padding:12px;border:1px solid var(--line);border-radius:10px;background:#f6f8f7}
+.power-metrics strong{display:block;font-size:clamp(18px,3vw,27px);color:var(--accent)}
+.power-table{width:100%;border-collapse:collapse}
+.power-table th,.power-table td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}
+.power-scroll{overflow:auto}
+.power-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+#powerPrintInputs{display:none}
+@media print{
+ #powerView{display:none}
+ body.print-power #report{display:none}
+ body.print-power #powerView{display:grid;max-width:none;padding:0;font-size:10pt}
+ body.print-power #powerInputs,body.print-power #powerPdf{display:none}
+ body.print-power #powerPrintInputs{display:block}
+ .power-card{border:0;padding:0;overflow:visible}
+ .power-scroll{overflow:visible}
+ .power-table tr{break-inside:avoid}
+ .power-table thead{display:table-header-group}
+}
+</style>
+<header><div class="masthead"><span class="brand" aria-hidden="true">◇</span><div><div class="eyebrow">MCDOUGALL CHURCH · DETROIT</div><h1>3D Cable Planner</h1></div></div><nav class="workspace-nav" aria-label="Planner sections"><button id="cableTab" type="button" aria-pressed="true" aria-controls="cableView">Cable Planner</button><button id="poolTab" type="button" aria-pressed="false" aria-controls="poolView">Pool Load</button><button id="powerTab" type="button" aria-pressed="false" aria-controls="powerView">Power Planning</button></nav></header>
+<main id="cableView">
+<section class="panel viewport" aria-label="3D floor plan">
+<div class="toolbar"><div class="views" aria-label="Drawing views"><button id="orbit" aria-pressed="true">3D view</button><button id="top" aria-pressed="false">Top view</button><button id="front" aria-pressed="false">Front view</button><button id="side" aria-pressed="false">Side view</button></div><div class="grid-controls"><label>Grid <input id="grid" type="number" min=".1" step="any" value="0.5"><span id="gridUnit">m</span></label><label><input id="snap" type="checkbox" checked> Snap</label></div></div>
+<canvas id="scene" aria-label="Church floor and projector cable routes. Use the projector controls to edit locations by keyboard."></canvas>
+<div class="legend"><span class="mount-key mount-floor">Floor projector</span><span class="mount-key mount-elevated">Elevated projector</span><span class="route">━ Cable route</span><span class="drop">┄ Vertical rise or drop</span><span class="muted hint">Drag a projector to move it. Drag open space to orbit.</span></div>
+</section>
+<aside class="panel editor">
+<section><div class="section-title"><h2 class="mount-key mount-floor">Floor projectors</h2><button class="primary" id="addFloor">+ Add floor</button></div><div class="runs" id="floorRuns"></div></section>
+<section><div class="section-title"><h2 class="mount-key mount-elevated">Elevated projectors</h2><button class="primary" id="addHigh">+ Add wall top</button></div><div class="runs" id="upperRuns"></div></section>
+<section><div class="kicker">Projector settings</div><h2 id="editing">Mount position</h2><div class="fields" aria-label="Quick mount placement"><button id="placeFloor" aria-pressed="false">Place on floor</button><button id="placeHigh" aria-pressed="false">Place at wall top</button></div>
+<label>Projector name<input id="name" maxlength="60"></label>
+<div class="fields">
+<label>Mount<select id="mount"><option value="high">Wall top</option><option value="balcony">Balcony</option><option value="floor">Floor</option><option value="custom">Custom</option></select></label>
+<label>Units<select id="units"><option value="m">Meters</option><option value="ft">Feet</option></select></label>
+<label id="xLabel">From left wall<input id="x" type="number" step="any"></label>
+<label id="zLabel">From stage end<input id="z" type="number" step="any"></label>
+<label>Mount height<input id="y" type="number" min="0" step="any"></label>
+<label>Extra per run<input id="extra" type="number" min="0" step="any"></label>
+</div>
+<p id="details" class="help" aria-live="polite"></p>
+<div class="fields"><button class="danger" id="remove">Delete projector</button><button id="undo">Undo</button></div>
+</section><section><h2>Export &amp; share</h2>
+<div class="fields"><button id="pdf">Export PDF</button><button id="exportJson">Export JSON</button></div>
+<button id="importJson">Import JSON</button><input id="jsonFile" type="file" accept=".json,application/json" hidden>
+<p id="importStatus" class="help" role="status"></p>
+<p class="muted help">The tray is 6.43 m above the floor. Floor projector cables reach the nearer side wall, then follow the perimeter at floor level to the server room. Extra cable covers slack and the final connection inside the server room.</p>
+</section></aside></main>
+<iframe id="poolView" title="Pool Load Calculator" hidden></iframe>
+<section id="powerView" hidden aria-labelledby="powerTitle">
+<div class="panel power-card">
+  <div class="power-heading"><h1 id="powerTitle">Projector Power Plan</h1><button class="primary" type="button" id="powerPdf">Export PDF</button></div>
+  <p class="muted">McDougall Church · Optoma 7,200-lumen laser projectors</p>
+  <div class="power-grid" id="powerInputs">
+    <label>Full brightness · 505 W each<input id="powerFull" type="number" min="0" max="500" value="13"></label>
+    <label>Low brightness · 260 W each<input id="powerLow" type="number" min="0" max="500" value="0"></label>
+    <label>Supply voltage (V)<input id="powerVoltage" type="number" min="90" max="264" step="any" value="120"></label>
+    <label>Breaker rating<select id="powerBreaker"><option value="15">15 A</option><option value="20" selected>20 A</option></select></label>
+    <label>Assumed power factor<input id="powerFactor" type="number" min=".1" max="1" step="any" value=".90"></label>
+    <label>Other load per circuit (A)<input id="powerReserve" type="number" min="0" max="16" step="any" value="0"></label>
+  </div>
+  <p id="powerPrintInputs"></p>
+  <div class="power-metrics" aria-live="polite">
+    <div>Projectors<strong id="powerCount"></strong></div><div>Projector load<strong id="powerWatts"></strong></div>
+    <div>Estimated current across circuits<strong id="powerAmps"></strong></div><div>Estimated circuit groups<strong id="powerCircuits"></strong></div>
+  </div>
+  <p id="powerBudget" class="help"></p>
+</div>
+<div class="panel power-card">
+  <h2>Illustrative circuit grouping</h2>
+  <div class="power-scroll"><table class="power-table"><thead><tr><th>Group</th><th>Full</th><th>Low</th><th>Projector load</th><th>Estimated amps incl. other load</th></tr></thead><tbody id="powerRows"></tbody></table></div>
+  <p id="powerStatus" class="help" role="status"></p>
+  <p class="muted help">Uses 505 W as the full-brightness planning ceiling and estimates current as watts ÷ (voltage × power factor). The default power factor of 0.90 is an assumption. Grouping uses an 80% continuous-load budget for standard-rated breakers. Confirm projector nameplate current, startup draw, available circuits and all shared loads with the venue electrician before use.</p>
+  <p class="help"><a href="https://www.se.com/us/en/faqs/FA104355/">Continuous-load reference</a></p>
+</div>
+</section>
+<section id="report">
+<h1>McDougall Church cable schedule</h1>
+<p>Estimated routes to the server room, including any extra cable entered in the planner.</p>
+<figure>
+<svg id="reportPlan" viewBox="0 0 330 560" role="img" aria-label="Top view of projector positions and cable routes"></svg>
+<figcaption>Blue markers identify floor projectors. Green markers identify elevated projectors. Vertical cable segments are included in the schedule below.</figcaption>
+</figure>
+<table><thead><tr><th>Projector</th><th>Mount</th><th>Route</th><th>Meters</th><th>Feet</th></tr></thead><tbody id="reportRows"></tbody></table>
+</section>
+<script>
+'use strict';
+const W=11.913,L=27.254,H=6.426,S=2.18,B=L-L*166/1055;
+const initial=[
+  {id:1,x:0,z:9.69,y:H,mount:'high'}, {id:2,x:W,z:9.69,y:H,mount:'high'},
+  {id:3,x:0,z:20.92,y:H,mount:'high'}, {id:4,x:W,z:20.92,y:H,mount:'high'},
+  {id:5,x:(W-3.048)/2,z:B,y:H,mount:'balcony'}, {id:6,x:(W+3.048)/2,z:B,y:H,mount:'balcony'}
+];
+const el=id=>document.getElementById(id);
+const canvas=el('scene'),ctx=canvas.getContext('2d');
+let state={projectors:initial,grid:.5,snap:true,unit:'m',extra:0,next:7};
+try { const saved=JSON.parse(localStorage.getItem('mcdougall-3d-v1')); if(Array.isArray(saved?.projectors)) state=saved; } catch {}
+let selected=state.projectors[0], view='orbit', angle=-.55, pitch=.64, zoom=1, drag=null;
+let screenW=0,screenH=0,k=1;
+const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
+const factor=()=>state.unit==='ft'?1/.3048:1;
+const fmt=n=>(n*factor()).toFixed(1)+' '+state.unit;
+const save=()=>{try{localStorage.setItem('mcdougall-3d-v1',JSON.stringify(state));}catch{}};
+const pos=(x,y,z)=>({x,y,z});
+const mountClass=p=>p.mount==='floor'?'mount-floor':'mount-elevated';
+const mountColors=Object.fromEntries(['mount-floor','mount-elevated'].map(name=>{
+  const swatch=document.querySelector('.legend .'+name);
+  return [name,getComputedStyle(swatch).getPropertyValue('--mount-color').trim()];
+}));
+const nameOf=p=>p.name||'P'+p.id;
+const mountNames={high:'Wall top',floor:'Floor',balcony:'Balcony',custom:'Custom'};
+const historyStack=[];
+function snapshot(){return {layout:structuredClone(state),selectedId:selected?.id};}
+function checkpoint(previous=snapshot()){
+  historyStack.push(previous);
+  if(historyStack.length>50)historyStack.shift();
+}
+function undo(){
+  const previous=historyStack.pop();
+  if(!previous)return;
+  state=previous.layout;
+  selected=state.projectors.find(p=>p.id===previous.selectedId)??state.projectors[0];
+  refresh();save();
+}
+const server=pos(0,H,S);
+function route(p){
+  if(p.mount==='floor'){
+    const destination=pos(0,0,S);
+    if(p.x<=W/2){
+      return {
+        points:[p,pos(0,0,p.z),destination],
+        distance:p.x+Math.abs(p.z-S),
+        wall:'left wall at floor level'
+      };
+    }
+    const stage=p.z+S, entrance=(L-p.z)+(L-S);
+    const end=stage<=entrance?0:L;
+    return {
+      points:[p,pos(W,0,p.z),pos(W,0,end),pos(0,0,end),destination],
+      distance:(W-p.x)+W+Math.min(stage,entrance),
+      wall:'right wall and '+(end===0?'stage':'entrance')+' end at floor level'
+    };
+  }
+  const wallCandidates=p.mount==='balcony'?[pos(0,p.y,p.z)]:p.mount==='high'?[p]:[
+    pos(0,p.y,p.z),pos(W,p.y,p.z),pos(p.x,p.y,0),pos(p.x,p.y,L)
+  ];
+  const options=wallCandidates.flatMap(wall=>{
+    const tray=pos(wall.x,H,wall.z);
+    const left=pos(0,H,wall.z);
+    let perimeter;
+    if(wall.x===0) perimeter=[[server]];
+    else if(wall.z===0 || wall.z===L) perimeter=[[left,server]];
+    else perimeter=[[pos(W,H,0),pos(0,H,0),server],[pos(W,H,L),pos(0,H,L),server]];
+    return perimeter.map(tail=>{
+      const points=[p,wall,tray,...tail,pos(0,0,S)];
+      const distance=points.slice(1).reduce((sum,q,i)=>sum+Math.hypot(q.x-points[i].x,q.y-points[i].y,q.z-points[i].z),0);
+      return {points,distance,wall:wall.x===0?'left wall':wall.x===W?'right wall':wall.z===0?'stage wall':'entrance wall'};
+    });
+  });
+  return options.reduce((best,next)=>next.distance<best.distance?next:best);
+}
+function project(p){
+  if(view==='front'||view==='side'){
+    const horizontal=view==='front'?p.x-W/2:p.z-L/2;
+    return [screenW/2+horizontal*k,screenH/2+(3.848-p.y)*k];
+  }
+  if(view==='top') return [screenW/2+(p.x-W/2)*k,screenH/2+(p.z-L/2)*k];
+  const x=p.x-W/2,z=p.z-L/2,c=Math.cos(angle),s=Math.sin(angle);
+  return [screenW/2+(x*c-z*s)*k,screenH*.57+((x*s+z*c)*Math.sin(pitch)-p.y*Math.cos(pitch))*k];
+}
+function unproject(x,y,height){
+  const u=(x-screenW/2)/k;
+  if(view==='front')return {x:u+W/2};
+  if(view==='side')return {z:u+L/2};
+  if(view==='top')return {x:u+W/2,z:(y-screenH/2)/k+L/2};
+  const v=((y-screenH*.57)/k+height*Math.cos(pitch))/Math.sin(pitch);
+  const c=Math.cos(angle),s=Math.sin(angle);
+  return {x:u*c+v*s+W/2,z:-u*s+v*c+L/2};
+}
+function path(points,color,width=1,dash=[],fill){
+  ctx.beginPath();points.map(project).forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));
+  if(fill){ctx.closePath();ctx.fillStyle=fill;ctx.fill();}
+  ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.stroke();ctx.setLineDash([]);
+}
+function text(p,label,color='#303737',dx=0,dy=0){
+  const [x,y]=project(p);ctx.font='600 12px ui-monospace,monospace';ctx.fillStyle=color;ctx.fillText(label,x+dx,y+dy);
+}
+const floor=[pos(0,0,0),pos(W,0,0),pos(W,0,L),pos(0,0,L)];
+function draw(){
+  if(!screenW||!screenH)return;
+  const elevation=view==='front'||view==='side';
+  const span=view==='front'?W:L;
+  k=(elevation?Math.min((screenW-70)/span,(screenH-100)/7.696):
+    view==='top'?Math.min((screenW-65)/W,(screenH-55)/L):Math.min((screenW-85)/25,(screenH-60)/23))*zoom;
+  ctx.clearRect(0,0,screenW,screenH);
+  if(elevation){
+    const edge=(n,y)=>view==='front'?pos(n,y,0):pos(0,y,n);
+    const outline=[edge(0,0),edge(0,H)];
+    if(view==='front'){
+      for(let i=1;i<24;i++){
+        const t=i/24;
+        outline.push(edge(t*W,H+(7.696-H)*4*t*(1-t)));
+      }
+    }else{
+      outline.push(edge(0,7.696),edge(L,7.696));
+    }
+    outline.push(edge(span,H),edge(span,0));
+    path(outline,'#747e80',1,[],'#f9faf9');
+    path([edge(0,H),edge(span,H)],'#747e80',1,[5,5]);
+    text(edge(0,H),'WALL TOP · '+fmt(H),'#343c3d',0,-11);
+    text(edge(0,0),view==='side'?'STAGE END':'FLOOR','#343c3d',0,22);
+    if(view==='side'){
+      text(edge(L,0),'ENTRANCE','#343c3d',-63,22);
+      path([edge(B,0),edge(B,H)],'#818b90',1,[5,5]);
+    }
+  }else{
+    path(floor,'#727d7e',1,[],'#f9faf9');
+    path([pos(0,0,0),pos(W,0,0),pos(W,0,4.343),pos(0,0,4.343)],'#7c8b8b',1,[],'#e8efed');
+    for(let x=state.grid;x<W;x+=state.grid)path([pos(x,0,0),pos(x,0,L)],'#d5dddc');
+    for(let z=state.grid;z<L;z+=state.grid)path([pos(0,0,z),pos(W,0,z)],'#d5dddc');
+    if(view==='orbit'){
+      const tray=floor.map(p=>pos(p.x,H,p.z));
+      path([...tray,tray[0]],'#747e80',1,[5,5]);
+      for(const p of floor)path([p,pos(p.x,H,p.z)],'#929e9d',1,[4,5]);
+    }
+    path([pos(0,H,B),pos(W,H,B)],'#818b90',1,[5,5]);
+    text(pos(W/2,0,2),'STAGE','#343c3d',-19,0);
+    text(pos(W/2,0,L),'ENTRANCE','#343c3d',-30,17);
+  }
+  for(const p of [...state.projectors.filter(p=>p!==selected),...(selected?[selected]:[])]){
+    const {points}=route(p);
+    points.slice(1).forEach((q,i)=>{
+      const a=points[i], vertical=q.y!==a.y;
+      path([a,q],p===selected?(vertical?'#a34814':'#167254'):'#869895',p===selected?3:1.3,vertical?[4,4]:[]);
+    });
+  }
+  const [sx,sy]=project(pos(0,0,S));ctx.fillStyle='#a34814';ctx.fillRect(sx-5,sy-5,10,10);
+  text(pos(0,0,S),'SERVER','#a34814',-45,18);
+  for(const p of state.projectors){
+    const [x,y]=project(p);
+    const color=mountColors[mountClass(p)];
+    if(p===selected){
+      ctx.strokeStyle='#191919';ctx.lineWidth=2;ctx.strokeRect(x-12,y-9,24,18);
+    }
+    ctx.fillStyle=color;ctx.fillRect(x-9,y-6,18,12);
+    ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(x+4,y,3,0,Math.PI*2);ctx.fill();
+    text(p,nameOf(p).length>18?nameOf(p).slice(0,17)+'…':nameOf(p),color,p===selected?15:11,-8);
+  }
+}
+function refresh(){
+  const f=factor();
+  el('gridUnit').textContent=state.unit;el('grid').value=+(state.grid*f).toFixed(3);
+  el('grid').min=.1*f;el('grid').max=10*f;
+  el('snap').checked=state.snap;el('units').value=state.unit;
+  el('editing').textContent=selected?'Mount position · '+nameOf(selected):'Select or add a projector';
+  for(const id of ['mount','placeFloor','placeHigh','name','x','y','z','remove'])el(id).disabled=!selected;
+  el('undo').disabled=!historyStack.length;
+  el('extra').value=+(state.extra*f).toFixed(3);
+  el('name').value=selected?nameOf(selected):'';
+  el('mount').value=selected?.mount??'';
+  el('placeFloor').setAttribute('aria-pressed',String(selected?.mount==='floor'));
+  el('placeHigh').setAttribute('aria-pressed',String(selected?.mount==='high'));
+  for(const key of ['x','y','z'])el(key).value=selected?+(selected[key]*f).toFixed(3):'';
+  el('details').textContent='';
+  if(selected){
+    el('z').disabled=selected.mount==='balcony';
+    el('y').disabled=['floor','high'].includes(selected.mount);
+    const r=route(selected);
+    el('details').textContent=fmt(r.distance+state.extra)+' total via '+r.wall+' · '+fmt(selected.y)+' mount height';
+  }
+  const floorRuns=el('floorRuns'),upperRuns=el('upperRuns');
+  const existing=new Map([...floorRuns.children,...upperRuns.children].map(button=>[Number(button.dataset.id),button]));
+  for(const p of state.projectors){
+    const runs=p.mount==='floor'?floorRuns:upperRuns;
+    let button=existing.get(p.id);
+    if(!button){
+      button=document.createElement('button');button.type='button';button.dataset.id=p.id;
+      button.append(document.createElement('span'),document.createElement('strong'));
+    }
+    if(button.parentElement!==runs)runs.append(button);
+    button.onclick=()=>{selected=p;refresh();};
+    existing.delete(p.id);
+    button.setAttribute('aria-pressed',String(p===selected));
+    button.className=mountClass(p);
+    button.firstChild.textContent=nameOf(p)+' · '+mountNames[p.mount];
+    button.lastChild.textContent=fmt(route(p).distance+state.extra);
+  }
+  for(const button of existing.values())button.remove();
+  draw();
+}
+function move(p,x,z,snap){
+  if(snap){x=Math.round(x/state.grid)*state.grid;z=Math.round(z/state.grid)*state.grid;}
+  p.x=clamp(x,0,W);p.z=clamp(z,0,L);
+  if(p.mount==='balcony')p.z=B;
+  if(p.mount==='high'){
+    const candidates=[[p.x,0,p.z],[W-p.x,W,p.z],[p.z,p.x,0],[L-p.z,p.x,L]];
+    const [,wallX,wallZ]=candidates.reduce((a,b)=>b[0]<a[0]?b:a);
+    p.x=wallX;p.z=wallZ;
+  }
+}
+function addProjector(mount){
+  checkpoint();
+  const high=mount==='high';
+  selected={id:state.next++,x:high?0:W/2,z:L/2,y:high?H:0,mount};
+  move(selected,selected.x,selected.z,state.snap);state.projectors.push(selected);refresh();save();
+}
+el('addFloor').onclick=()=>addProjector('floor');
+el('addHigh').onclick=()=>addProjector('high');
+function deleteProjector(){
+  if(!selected)return;
+  checkpoint();
+  state.projectors=state.projectors.filter(p=>p!==selected);selected=state.projectors[0];refresh();save();
+}
+el('remove').onclick=deleteProjector;
+el('undo').onclick=undo;
+document.addEventListener('keydown',event=>{
+  if(event.target.closest('input, textarea, select, [contenteditable]'))return;
+  if(['Delete','Backspace'].includes(event.key)&&selected){event.preventDefault();deleteProjector();}
+  if((event.ctrlKey||event.metaKey)&&!event.shiftKey&&event.key.toLowerCase()==='z'&&historyStack.length){
+    event.preventDefault();undo();
+  }
+});
+el('name').onchange=()=>{
+  const name=el('name').value.trim()||'P'+selected.id;
+  if(name!==nameOf(selected)){checkpoint();selected.name=name;save();}
+  refresh();
+};
+function setMount(mount){
+  if(!selected||selected.mount===mount)return;
+  checkpoint();
+  selected.mount=mount;
+  if(selected.mount==='high')selected.y=H;
+  if(selected.mount==='floor')selected.y=0;
+  if(selected.mount==='balcony')selected.y=H;
+  move(selected,selected.x,selected.z,false);refresh();save();
+}
+el('mount').onchange=()=>setMount(el('mount').value);
+el('placeFloor').onclick=()=>setMount('floor');
+el('placeHigh').onclick=()=>setMount('high');
+el('units').onchange=()=>{state.unit=el('units').value;refresh();save();};
+el('snap').onchange=()=>{state.snap=el('snap').checked;save();};
+for(const key of ['x','y','z','grid','extra']){
+  el(key).onchange=()=>{
+    const n=el(key).valueAsNumber/factor();
+    if(Number.isFinite(n)){
+      checkpoint();
+      if(key==='grid')state.grid=clamp(n,.1,10);
+      else if(key==='extra')state.extra=Math.max(0,n);
+      else if(key==='y')selected.y=clamp(n,0,7.696);
+      else move(selected,key==='x'?n:selected.x,key==='z'?n:selected.z,state.snap);
+      save();
+    }
+    refresh();
+  };
+}
+const views=['orbit','top','front','side'];
+for(const id of views)el(id).onclick=()=>{
+  view=id;zoom=1;
+  for(const tab of views)el(tab).setAttribute('aria-pressed',String(tab===view));
+  draw();
+};
+const cursor=e=>{const r=canvas.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];};
+canvas.onpointerdown=e=>{
+  if(drag)return;
+  const [x,y]=cursor(e);
+  const hits=[selected,...state.projectors.filter(p=>p!==selected)].filter(Boolean).find(p=>{const [a,b]=project(p);return Math.hypot(a-x,b-y)<17;});
+  if(hits){selected=hits;refresh();}
+  const [px,py]=hits?project(hits):[x,y];
+  drag={id:e.pointerId,x,y,p:hits,dx:x-px,dy:y-py,before:hits?snapshot():null};
+  canvas.setPointerCapture(e.pointerId);
+};
+canvas.onpointermove=e=>{
+  if(drag?.id!==e.pointerId)return;
+  const [x,y]=cursor(e);
+  if(drag.p){
+    const at=unproject(x-drag.dx,y-drag.dy,drag.p.y);
+    if(view==='front'||view==='side'){
+      const p=drag.p, axis=view==='front'?'x':'z';
+      if(p.mount==='balcony'&&axis==='z')return;
+      if(p.mount==='high'&&(axis==='x'?p.z!==0&&p.z!==L:p.x!==0&&p.x!==W))return;
+      const value=state.snap?Math.round(at[axis]/state.grid)*state.grid:at[axis];
+      p[axis]=clamp(value,0,axis==='x'?W:L);
+    }else move(drag.p,at.x,at.z,state.snap);
+    refresh();
+  }else if(view==='orbit'){
+    angle+=(x-drag.x)*.008;pitch=clamp(pitch+(y-drag.y)*.005,.25,1.4);draw();
+  }
+  drag.x=x;drag.y=y;
+};
+canvas.onlostpointercapture=e=>{if(drag?.id===e.pointerId){
+  if(drag.p){
+    const original=drag.before.layout.projectors.find(p=>p.id===drag.p.id);
+    if(original.x!==drag.p.x||original.z!==drag.p.z)checkpoint(drag.before);
+  }
+  drag=null;refresh();save();
+}};
+canvas.addEventListener('wheel',e=>{e.preventDefault();zoom=clamp(zoom*Math.exp(-e.deltaY*.001),.6,2.8);draw();},{passive:false});
+function decodeLayout(data){
+  if(data?.format!=='mcdougall-cable-plan'||data.version!==1)throw Error('Choose a JSON file exported by this planner.');
+  const {projectors,grid,snap,unit,extra,next}=data.layout??{};
+  const within=(n,min,max)=>Number.isFinite(n)&&n>=min&&n<=max;
+  if(!Array.isArray(projectors)||projectors.length>500||!within(grid,.1,10)||typeof snap!=='boolean'||
+    !['m','ft'].includes(unit)||!within(extra,0,Number.MAX_SAFE_INTEGER))throw Error('This layout contains invalid settings.');
+  const ids=new Set();
+  const imported=projectors.map(p=>{
+    if(!p||!Number.isSafeInteger(p.id)||p.id<1||p.id>=Number.MAX_SAFE_INTEGER||ids.has(p.id)||
+      !Object.hasOwn(mountNames,p.mount)||!within(p.x,0,W)||!within(p.y,0,7.696)||!within(p.z,0,L)||
+      (p.name!==undefined&&(typeof p.name!=='string'||p.name.length>60)))throw Error('This layout contains an invalid projector.');
+    ids.add(p.id);
+    const projector={id:p.id,name:p.name?.trim(),x:p.x,y:p.y,z:p.z,mount:p.mount};
+    if(p.mount==='high')projector.y=H;
+    if(p.mount==='floor')projector.y=0;
+    move(projector,p.x,p.z,false);
+    return projector;
+  });
+  const minimumNext=Math.max(0,...ids)+1;
+  return {projectors:imported,grid,snap,unit,extra,
+    next:Number.isSafeInteger(next)&&next>=minimumNext&&next<Number.MAX_SAFE_INTEGER?next:minimumNext};
+}
+el('exportJson').onclick=()=>{
+  const file=new Blob([JSON.stringify({format:'mcdougall-cable-plan',version:1,layout:state},null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(file);
+  const link=document.createElement('a');link.href=url;link.download='mcdougall-cable-plan.json';link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+el('importJson').onclick=()=>el('jsonFile').click();
+el('jsonFile').onchange=async event=>{
+  const file=event.target.files[0];event.target.value='';
+  if(!file)return;
+  try{
+    if(file.size>1024*1024)throw Error('This JSON file is too large.');
+    const imported=decodeLayout(JSON.parse(await file.text()));
+    checkpoint();state=imported;selected=state.projectors[0];refresh();save();
+    el('importStatus').textContent='Imported '+state.projectors.length+' projectors. Use Undo to restore the previous layout.';
+  }catch(error){
+    el('importStatus').textContent=error instanceof SyntaxError?'This file is not valid JSON.':error.message;
+  }
+};
+function drawReportPlan(){
+  const svg=el('reportPlan');
+  svg.replaceChildren();
+  function mark(tag,attributes,label){
+    const element=document.createElementNS('http://www.w3.org/2000/svg',tag);
+    for(const [name,value] of Object.entries(attributes))element.setAttribute(name,value);
+    if(label!==undefined)element.textContent=label;
+    svg.append(element);
+  }
+  const scale=17,left=73,top=50,right=left+W*scale,bottom=top+L*scale;
+  const point=p=>[left+p.x*scale,top+p.z*scale];
+  const line=(points,stroke,width,dash='none')=>mark('polyline',{
+    points:points.map(p=>p.join(',')).join(' '),fill:'none',stroke,'stroke-width':width,
+    'stroke-dasharray':dash,'stroke-linejoin':'round'
+  });
+  const label=(x,y,value,fill='#151515',anchor='middle',size=13)=>mark('text',{
+    x,y,fill,'text-anchor':anchor,'font-size':size,'font-family':'monospace'
+  },value);
+  mark('rect',{x:left,y:top,width:W*scale,height:L*scale,fill:'#fff',stroke:'#727d7e'});
+  mark('rect',{x:left,y:top,width:W*scale,height:4.343*scale,fill:'#eef2f0',stroke:'#727d7e'});
+  line([[left,top+B*scale],[right,top+B*scale]],'#818b90',1,'5 4');
+  label((left+right)/2,32,'TOP VIEW');
+  label((left+right)/2,top+32,'STAGE');
+  label((left+right)/2,top+B*scale-8,'BALCONY');
+  label((left+right)/2,bottom+23,'ENTRANCE');
+  const [,serverY]=point(server);
+  line([[left,serverY],[49,serverY]],'#a34814',2,'4 3');
+  mark('rect',{x:34,y:serverY-8,width:15,height:12,rx:2,fill:'none',stroke:'#a34814'});
+  line([[41.5,serverY+4],[41.5,serverY+8],[37,serverY+8],[46,serverY+8]],'#a34814',1);
+  label(41,serverY+23,'SERVER','#a34814','middle',10);
+  for(const p of state.projectors){
+    const color=mountColors[mountClass(p)];
+    line(route(p).points.map(point),color,1.8,p.mount==='floor'?'4 3':'none');
+  }
+  for(const p of state.projectors){
+    const [x,y]=point(p),color=mountColors[mountClass(p)];
+    mark('rect',{x:x-8,y:y-5,width:16,height:10,rx:2,fill:color,stroke:'#fff'});
+    mark('circle',{cx:x+4,cy:y,r:2,fill:'#fff'});
+    const onRight=x>right-40;
+    label(x+(onRight?11:-11),y+4,'P'+p.id,'#151515',onRight?'start':'end',11);
+  }
+}
+el('pdf').onclick=()=>{
+  drawReportPlan();
+  const rows=el('reportRows');rows.replaceChildren();
+  for(const p of state.projectors){
+    const r=route(p),total=r.distance+state.extra;
+    const row=document.createElement('tr');
+    for(const value of ['P'+p.id+(nameOf(p)==='P'+p.id?'':' · '+nameOf(p)),mountNames[p.mount],r.wall,total.toFixed(2)+' m',(total/.3048).toFixed(2)+' ft']){
+      const cell=document.createElement('td');cell.textContent=value;row.append(cell);
+    }
+    rows.append(row);
+  }
+  window.print();
+};
+new ResizeObserver(()=>{
+  const r=canvas.getBoundingClientRect(),d=devicePixelRatio||1;
+  screenW=r.width;screenH=r.height;canvas.width=Math.round(screenW*d);canvas.height=Math.round(screenH*d);
+  ctx.setTransform(d,0,0,d,0,0);draw();
+}).observe(canvas);
+refresh();
+</script>
+<script id="poolSource" type="application/json">"\u003c!doctype html>\n\u003chtml lang=\"en\">\n\u003chead>\n\u003cmeta charset=\"utf-8\">\n\u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n\u003cmeta name=\"description\" content=\"Load calculator for two wooden water pools: weight, floor load and wall push in imperial or metric.\">\n\u003ctitle>Pool Floor Load\u003c/title>\n\u003cstyle>\n/* Layout: light single theme. Hero = big combined result beside a water cross-section; then two pool cards; then gauge + plan; notes last. */\n:root{\n  color-scheme:light;\n  --bg:#f7fbfc; --paper:#ffffff; --ink:#0e2a35; --muted:#5d7681; --line:#dbe8ec;\n  --aqua:#0a8fbd; --aqua-deep:#066a8e; --aqua-pale:#e3f4f9; --aqua-mid:#bfe5f1;\n  --oak:#b98552; --oak-pale:#f5ebdf;\n  --ok:#24875a; --warn:#c07a12; --bad:#c03d32;\n  --sans:\"Familjen Grotesk\",\"Helvetica Neue\",Arial,sans-serif;\n  --mono:\"DM Mono\",ui-monospace,Menlo,monospace;\n}\n*{box-sizing:border-box}\nbody{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;\n  background-image:radial-gradient(1200px 500px at 85% -10%,var(--aqua-pale),transparent 70%)}\n.wrap{max-width:1040px;margin:0 auto;padding-block:32px 56px;\n  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));\n  display:grid;gap:20px}\n.num,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}\n.label{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}\n\nheader{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between}\n.kicker{color:var(--aqua-deep);font-weight:600;font-size:.85rem;letter-spacing:.04em}\nh1{font-size:clamp(2rem,5vw,3rem);font-weight:700;letter-spacing:-.025em;margin:2px 0 0;line-height:1;text-wrap:balance}\n.seg{display:inline-flex;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:4px;gap:2px;box-shadow:0 1px 2px rgba(14,42,53,.05)}\n.seg button{font:inherit;font-weight:600;font-size:.9rem;border:0;background:transparent;color:var(--muted);padding:7px 16px;border-radius:999px;cursor:pointer;transition:background .15s,color .15s}\n.seg button[aria-pressed=\"true\"]{background:var(--ink);color:#fff}\nbutton:focus-visible,input:focus-visible{outline:2px solid var(--aqua);outline-offset:2px}\n\n.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 1px 2px rgba(14,42,53,.04),0 8px 24px -16px rgba(14,42,53,.12)}\n\n/* hero */\n.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px;align-items:center}\n.hero .figs{display:grid;gap:18px}\n.bigv{font-size:clamp(2.6rem,7vw,4.2rem);font-weight:700;letter-spacing:-.035em;line-height:.95;font-variant-numeric:tabular-nums}\n.bigv small{font-size:.38em;font-weight:600;letter-spacing:0;color:var(--muted);margin-left:4px}\n.figrow{display:flex;flex-wrap:wrap;gap:14px 32px}\n.fig .v{font-size:1.45rem;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums}\n.fig .v small{font-size:.75rem;color:var(--muted);font-weight:500;margin-left:3px}\n.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:.82rem;font-weight:600;width:fit-content}\n.pill::before{content:\"\";width:8px;height:8px;border-radius:50%;background:currentColor}\n.pill.ok{color:var(--ok);background:#e6f4ed}.pill.warn{color:var(--warn);background:#fbf0de}.pill.bad{color:var(--bad);background:#fbe6e3}.pill.info{color:var(--aqua-deep);background:var(--aqua-pale)}\n.section-fig svg{width:100%;height:auto;display:block}\n\n/* pools */\n.pools{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}\n.pool-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}\n.pool-head h2{margin:0;font-size:1.2rem;font-weight:700;display:flex;align-items:center;gap:10px}\n.swatch{width:26px;height:18px;border-radius:4px;border:2px solid var(--oak);background:var(--aqua-mid)}\n.swatch.b{background:var(--aqua-pale)}\n.toggle{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted);cursor:pointer;user-select:none}\n.toggle input{accent-color:var(--aqua);width:16px;height:16px}\n.ctrl{display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:6px 12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}\n.ctrl:first-of-type{border-top:0}\n.ctrl .label{grid-column:1/-1}\n.ctrl input[type=range]{width:100%;accent-color:var(--aqua);margin:0}\n.box{display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding-right:9px}\n.box input{font-family:var(--mono);font-size:.95rem;width:100%;min-width:0;border:0;background:transparent;color:var(--ink);padding:7px 0 7px 10px;text-align:right}\n.box input:focus{outline:none}.box:focus-within{border-color:var(--aqua);box-shadow:0 0 0 3px var(--aqua-pale)}\n.box span{font-size:.8rem;color:var(--muted);margin-left:5px}\n.locked .ctrl input{opacity:.5}\n.mini{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border-radius:10px;overflow:hidden;margin-top:14px}\n.mini div{background:var(--aqua-pale);padding:10px 12px}\n.mini .v{font-family:var(--mono);font-size:1rem;font-weight:500;margin-top:2px}\n.mini .s{font-size:.75rem;color:var(--muted)}\n\n/* gauge + plan */\n.duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}\n.card h3{margin:0 0 4px;font-size:1.05rem;font-weight:700}\n.card p.sub{margin:0 0 18px;color:var(--muted);font-size:.9rem}\n.gauge{position:relative;height:14px;border-radius:999px;background:linear-gradient(90deg,#e6f4ed 0%,#e6f4ed 40%,#fbf0de 60%,#fbe6e3 100%);margin:46px 0 34px}\n.gauge .mark{position:absolute;top:50%;width:22px;height:22px;border-radius:50%;background:var(--aqua);border:4px solid #fff;box-shadow:0 2px 6px rgba(14,42,53,.25);transform:translate(-50%,-50%);transition:left .3s}\n.gauge .mark span{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);white-space:nowrap;font-family:var(--mono);font-size:.8rem;font-weight:500;color:var(--aqua-deep)}\n.gauge .ref{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);opacity:.5}\n.gauge .ref span{position:absolute;top:100%;margin-top:8px;transform:translateX(-50%);white-space:nowrap;font-size:.72rem;color:var(--muted)}\n.gauge .ref.end span{transform:translateX(-90%)}\n.compare{font-size:.92rem;margin:0;max-width:60ch}\n.plan svg{width:100%;height:auto;display:block}\n\n.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;color:var(--muted);font-size:.85rem}\n.notes h4{margin:0 0 4px;color:var(--ink);font-size:.85rem}\n.notes p{margin:0}\n\n.build-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start}\n.build{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:28px}\n.opts{display:grid;gap:12px;align-content:start}\n.opt{display:grid;gap:5px;min-width:0}\n.opt select{font:inherit;font-size:.92rem;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%}\n.opt select:focus-visible{outline:2px solid var(--aqua);outline-offset:2px}\n.matnote{font-size:.8rem;color:var(--muted)}\n.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}\n.tw{overflow-x:auto;min-width:0}\ntable.bt{width:100%;border-collapse:collapse;font-size:.9rem}\n.bt th{text-align:left;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:0 8px 8px;border-bottom:1px solid var(--line)}\n.bt th.n,.bt td.n{text-align:right}\n.bt td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}\n.bt td.n{font-family:var(--mono);white-space:nowrap}\n.bt .spec{display:block;color:var(--muted);font-size:.8rem}\n.bt tr.tot td{font-weight:700;background:var(--oak-pale);border-bottom:0}\n.bt tr.sub td{color:var(--muted);font-size:.85rem;border-bottom:0}\n.rec{font-size:.88rem;background:var(--aqua-pale);border-radius:10px;padding:12px 14px;margin:16px 0 0;display:grid;gap:6px}\n.rec p{margin:0}\n@media (max-width:760px){.hero,.duo,.build{grid-template-columns:1fr}}\n@media (prefers-reduced-motion:reduce){*{transition:none!important}}\n[hidden]{display:none!important}\nbody{margin:0}\nimg{max-width:100%}\nbody{margin:0;background:#fff;color:#151515;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}\n:root{--bg:#fff;--paper:#fff;--ink:#151515;--muted:#535b60;--line:#dedfe1;--sans:ui-monospace,SFMono-Regular,Consolas,monospace;--mono:var(--sans)}\n.wrap{padding-top:18px}\n.card{border-radius:17px;box-shadow:none}\nh1{font-size:clamp(1.45rem,4vw,2.1rem)}\n.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}\n#poolPdf{font:inherit;background:#eef6f1;color:#153c32;border:1px solid #a4c9ba;border-radius:8px;padding:8px 12px;cursor:pointer}\n#poolReport{display:none}\n@media print{\n @page{margin:15mm}\n .wrap{display:none}\n #poolReport{display:block;font:10pt/1.45 monospace}\n #poolReport table{width:100%;border-collapse:collapse;margin:12pt 0}\n #poolReport th,#poolReport td{text-align:left;padding:6pt;border-bottom:1px solid #ccd2d2}\n #poolReport tr{break-inside:avoid}\n #poolReport svg{display:block;width:100%;height:52mm}\n}\n\u003c/style>\n\u003c/head>\n\u003cbody>\n\u003cdiv class=\"wrap\">\n  \u003cheader>\n    \u003cdiv>\n      \u003cdiv class=\"kicker\">Two wooden pools · 1940s Detroit church · timber floor\u003c/div>\n      \u003ch1>Pool Floor Load\u003c/h1>\n    \u003c/div>\n    \u003cdiv class=\"actions\">\u003cbutton id=\"poolPdf\" type=\"button\">Export PDF\u003c/button>\u003cdiv class=\"seg\" role=\"group\" aria-label=\"Units\">\n      \u003cbutton id=\"u-imperial\" type=\"button\" aria-pressed=\"true\">Imperial\u003c/button>\n      \u003cbutton id=\"u-metric\" type=\"button\" aria-pressed=\"false\">Metric\u003c/button>\n    \u003c/div>\u003c/div>\n  \u003c/header>\n\n  \u003csection class=\"card hero\" aria-label=\"Combined result\">\n    \u003cdiv class=\"figs\">\n      \u003cspan class=\"pill info\">Church floor capacity unknown\u003c/span>\n      \u003cdiv>\n        \u003cdiv class=\"label\">Total weight, water + pools, both pools\u003c/div>\n        \u003cdiv class=\"bigv\" id=\"t-weight\">\u003c/div>\n      \u003c/div>\n      \u003cdiv class=\"figrow\">\n        \u003cdiv class=\"fig\">\u003cdiv class=\"label\">Highest footprint average\u003c/div>\u003cdiv class=\"v\" id=\"t-load\">\u003c/div>\u003c/div>\n        \u003cdiv class=\"fig\">\u003cdiv class=\"label\">Water\u003c/div>\u003cdiv class=\"v\" id=\"t-vol\">\u003c/div>\u003c/div>\n        \u003cdiv class=\"fig\">\u003cdiv class=\"label\">Footprint\u003c/div>\u003cdiv class=\"v\" id=\"t-area\">\u003c/div>\u003c/div>\n      \u003c/div>\n    \u003c/div>\n    \u003cdiv class=\"section-fig\" id=\"section\" aria-label=\"Cross-section of one pool wall\">\u003c/div>\n  \u003c/section>\n\n  \u003csection class=\"pools\" id=\"pools\">\u003c/section>\n\n  \u003csection class=\"card\" aria-label=\"Pool construction\">\n    \u003cdiv class=\"build-head\">\n      \u003cdiv>\u003ch3>Pool construction\u003c/h3>\u003cp class=\"sub\">Plywood base and walls as a reference build, so the pools' own weight is added to the load. Both pools are built the same way.\u003c/p>\u003c/div>\n    \u003c/div>\n    \u003cdiv class=\"build\">\n      \u003cdiv class=\"opts\" id=\"b-opts\">\u003c/div>\n      \u003cdiv class=\"tw\">\u003ctable class=\"bt\" id=\"b-table\">\u003c/table>\u003cdiv class=\"rec\" id=\"b-rec\">\u003c/div>\u003c/div>\n    \u003c/div>\n  \u003c/section>\n\n  \u003csection class=\"duo\">\n    \u003cdiv class=\"card\">\u003ch3>Floor capacity\u003c/h3>\u003cp>The results estimate the added load over each pool footprint. Have a structural engineer verify both pool locations, floor supports, visitor loads and maximum fill depth before filling.\u003c/p>\u003c/div>\n    \u003cdiv class=\"card plan\">\n      \u003ch3>Plan view\u003c/h3>\n      \u003cp class=\"sub\">Drawn to scale, 1 m gap between pools.\u003c/p>\n      \u003cdiv id=\"plan\">\u003c/div>\n    \u003c/div>\n  \u003c/section>\n\n  \u003csection class=\"notes\">\n    \u003cdiv>\u003ch4>Water\u003c/h4>\u003cp>Fresh water at 1,000 kg/m³ (62.4 lb/ft³). Floor load is the weight spread evenly over each pool's footprint, so it assumes a continuous base. Legs or runners concentrate the load and need their own check.\u003c/p>\u003c/div>\n    \u003cdiv>\u003ch4>Wall push\u003c/h4>\u003cp>The outward force from the water per length of wall. It grows with the square of the depth and acts a third of the way up from the bottom.\u003c/p>\u003c/div>\n  \u003c/section>\n\u003c/div>\n\n\u003csection id=\"poolReport\">\n\u003ch1>Pool Load Estimate\u003c/h1>\n\u003cp>McDougall Church · Detroit\u003c/p>\n\u003cdiv id=\"poolReportSummary\">\u003c/div>\n\u003ctable>\u003cthead>\u003ctr>\u003cth>Measure\u003c/th>\u003cth>Pool A\u003c/th>\u003cth>Pool B\u003c/th>\u003c/tr>\u003c/thead>\u003ctbody id=\"poolReportRows\">\u003c/tbody>\u003c/table>\n\u003cp id=\"poolReportBuild\">\u003c/p>\n\u003cdiv id=\"poolReportPlan\">\u003c/div>\n\u003cp>Floor capacity is unknown. Loads are footprint averages assuming continuous support. Have a structural engineer check the actual supports, visitor loads and maximum fill depth before filling.\u003c/p>\n\u003c/section>\n\u003cscript>\n(function(){\n  const G=9.81,RHO=1000;\n  const M2FT=3.28084,M2IN=39.3701,KG2LB=2.20462,KGM2_PSF=0.204816,NM_LBFFT=0.0685218,M3_GAL=264.172,M2_FT2=10.7639;\n  let unit='imperial', linked=true;\n  const pools=[{name:'Pool A',L:4,W:7,D:0.17,S:0},{name:'Pool B',L:4,W:7,D:0.17,S:0}];\n  const RANGES={L:[0.5,20,0.05],W:[0.5,15,0.05],D:[0,1.2,0.001],S:[0,3000,10]};\n\n  const fmt=(n,d=0)=>Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});\n  const M=()=>unit==='metric';\n  const disp={L:m=>M()?m:m*M2FT,W:m=>M()?m:m*M2FT,D:m=>M()?m*100:m*M2IN,S:k=>M()?k:k*KG2LB};\n  const back={L:v=>M()?v:v/M2FT,W:v=>M()?v:v/M2FT,D:v=>M()?v/100:v/M2IN,S:v=>M()?v:v/KG2LB};\n  const unitOf={L:()=>M()?'m':'ft',W:()=>M()?'m':'ft',D:()=>M()?'cm':'in',S:()=>M()?'kg':'lb'};\n  const dec={L:2,W:2,D:2,S:0};\n  const names={L:'Length',W:'Width',D:'Water depth',S:'Pool structure weight (optional)'};\n  const r=(v,d)=>Math.round(v*10**d)/10**d;\n\n  function calc(p){const s=structure(p),a=p.L*p.W,v=a*p.D,w=v*RHO,t=w+s.total,kgm2=a>0?t/a:0;\n    return{s,a,v,w,t,kgm2,kpa:kgm2*G/1000,base:RHO*G*p.D,wall:.5*RHO*G*p.D*p.D,long:.5*RHO*G*p.D*p.D*Math.max(p.L,p.W)};}\n\n  // ---- construction ----\n  const MATS={\n    spruce:{n:'Spruce construction plywood',rho:470,note:'Lighter and cheaper. Rough face, fine under a liner. '},\n    birch:{n:'Birch plywood',rho:680,note:'Stiffest and most stable, smooth face if the wood shows. Heaviest and most expensive.'},\n    osb:{n:'OSB/3',rho:620,note:'Cheapest, but swells badly if it gets wet. Only with a reliable liner.'}\n  };\n  const IN={12:'½\"',15:'⅝\"',18:'¾\"',21:'⅞\"',24:'1\"'};\n  const B={mat:'spruce',base:'auto',wall:'auto',wallH:null,frame:15,liner:true};\n  const autoH=p=>Math.max(0.10,Math.ceil((p.D+0.05)*100-1e-9)/100);\n  const recBase=p=>p.D\u003c=0.3?18:p.D\u003c=0.6?21:24;\n  const recWall=h=>h\u003c=0.3?18:24;\n  function structure(p){\n    const h=B.wallH??autoH(p), tb=B.base==='auto'?recBase(p):+B.base, tw=B.wall==='auto'?recWall(h):+B.wall, rho=MATS[B.mat].rho;\n    const a=p.L*p.W, per=2*(p.L+p.W), wa=per*h;\n    const base=a*tb/1000*rho, walls=wa*tw/1000*rho, frame=(base+walls)*B.frame/100, liner=B.liner?(a+wa+per*0.15)*1.4:0;\n    const sheet=2.44*1.22, perSheet=Math.max(1,Math.floor(1.22/(h||1))), strips=Math.ceil(per/2.44);\n    const sheets=Math.ceil(a*1.05/sheet)+Math.ceil(strips/perSheet);\n    return{h,tb,tw,a,wa,per,base,walls,frame,liner,total:base+walls+frame+liner,sheets};\n  }\n  function buildCtrl(){\n    const d=document.getElementById('b-opts');\n    const thick=(id,v,lbl)=>`\u003clabel class=\"opt\">\u003cspan class=\"label\">${lbl}\u003c/span>\u003cselect id=\"${id}\">\u003coption value=\"auto\">Automatic estimate\u003c/option>${[12,15,18,21,24].map(t=>`\u003coption value=\"${t}\" ${String(v)===String(t)?'selected':''}>${t} mm (${IN[t]})\u003c/option>`).join('')}\u003c/select>\u003c/label>`;\n    d.innerHTML=`\u003clabel class=\"opt\">\u003cspan class=\"label\">Material\u003c/span>\u003cselect id=\"b-mat\">${Object.entries(MATS).map(([k,m])=>`\u003coption value=\"${k}\" ${B.mat===k?'selected':''}>${m.n} · ${m.rho} kg/m³\u003c/option>`).join('')}\u003c/select>\u003cspan class=\"matnote\" id=\"b-note\">\u003c/span>\u003c/label>\n      \u003cdiv class=\"pair\">${thick('b-base',B.base,'Base thickness')}${thick('b-wall',B.wall,'Wall thickness')}\u003c/div>\n      \u003cdiv class=\"pair\">\n        \u003clabel class=\"opt\">\u003cspan class=\"label\">Wall height\u003c/span>\u003cdiv class=\"box\">\u003cinput id=\"b-h\" type=\"number\" min=\"0\" step=\"any\" inputmode=\"decimal\" placeholder=\"auto\" value=\"${B.wallH==null?'':r(disp.D(B.wallH),1)}\">\u003cspan>${unitOf.D()}\u003c/span>\u003c/div>\u003c/label>\n        \u003clabel class=\"opt\">\u003cspan class=\"label\">Framing &amp; screws\u003c/span>\u003cdiv class=\"box\">\u003cinput id=\"b-f\" type=\"number\" min=\"0\" max=\"100\" step=\"1\" inputmode=\"numeric\" value=\"${B.frame}\">\u003cspan>%\u003c/span>\u003c/div>\u003c/label>\n      \u003c/div>\n      \u003clabel class=\"toggle\">\u003cinput id=\"b-l\" type=\"checkbox\" ${B.liner?'checked':''}>Include EPDM pond liner (1.14 mm)\u003c/label>`;\n    const on=(id,ev,f)=>document.getElementById(id).addEventListener(ev,e=>{f(e.target);render();});\n    on('b-mat','change',t=>B.mat=t.value);\n    on('b-base','change',t=>B.base=t.value);\n    on('b-wall','change',t=>B.wall=t.value);\n    on('b-h','input',t=>{const v=parseFloat(t.value);B.wallH=isFinite(v)&&v>0?back.D(v):null;});\n    on('b-f','input',t=>{const v=parseFloat(t.value);B.frame=isFinite(v)&&v>=0?v:0;});\n    on('b-l','change',t=>B.liner=t.checked);\n  }\n  function renderBuild(cs){\n    const [a,b]=cs.map(c=>c.s), m=MATS[B.mat];\n    document.getElementById('b-note').textContent=m.note;\n    const hTxt=s=>M()?`${fmt(s.h*100)} cm`:`${fmt(s.h*M2IN,1)} in`;\n    const pl=c=>M()?`${fmt(c.s.total/c.a,1)} kg/m²`:`${fmt(c.s.total/c.a*KGM2_PSF,1)} psf`;\n    const row=(lbl,spec,k)=>`\u003ctr>\u003ctd>${lbl}\u003cspan class=\"spec\">${spec}\u003c/span>\u003c/td>\u003ctd class=\"n\">${mass(a[k])}\u003c/td>\u003ctd class=\"n\">${mass(b[k])}\u003c/td>\u003c/tr>`;\n    document.getElementById('b-table').innerHTML=`\u003cthead>\u003ctr>\u003cth>Part\u003c/th>\u003cth class=\"n\">Pool A\u003c/th>\u003cth class=\"n\">Pool B\u003c/th>\u003c/tr>\u003c/thead>\u003ctbody>\n      ${row('Base',`${a.tb} mm (${IN[a.tb]}) ${m.n.toLowerCase()}, laid flat on the floor`,'base')}\n      ${row('Walls',`${a.tw} mm (${IN[a.tw]}), ${hTxt(a)} high${B.wallH==null?' (water + 5 cm)':''}`,'walls')}\n      ${row('Framing &amp; screws',`Corner blocks, cleats, glue, screws: ${B.frame}% of plywood`,'frame')}\n      ${B.liner?row('Liner','EPDM 1.14 mm, ≈ 1.4 kg/m² incl. overlap','liner'):''}\n      \u003ctr class=\"tot\">\u003ctd>Pool weight, empty\u003c/td>\u003ctd class=\"n\">${mass(a.total)}\u003c/td>\u003ctd class=\"n\">${mass(b.total)}\u003c/td>\u003c/tr>\n      \u003ctr class=\"sub\">\u003ctd>Adds to floor load\u003c/td>\u003ctd class=\"n\">${pl(cs[0])}\u003c/td>\u003ctd class=\"n\">${pl(cs[1])}\u003c/td>\u003c/tr>\n      \u003ctr class=\"sub\">\u003ctd>Sheets, 2440 × 1220 mm\u003c/td>\u003ctd class=\"n\">≈ ${a.sheets}\u003c/td>\u003ctd class=\"n\">≈ ${b.sheets}\u003c/td>\u003c/tr>\n    \u003c/tbody>`;\n    document.getElementById('b-rec').textContent='Plywood thicknesses and framing allowances estimate weight. Confirm the base support, wall framing and connections for the actual installation.';\n\n  }\n\n  const host=document.getElementById('pools');\n  function build(){\n    host.innerHTML='';\n    pools.forEach((p,i)=>{\n      const lock=i===1&&linked;\n      const el=document.createElement('div');\n      el.className='card'+(lock?' locked':'');\n      el.innerHTML=`\u003cdiv class=\"pool-head\">\u003ch2>\u003cspan class=\"swatch ${i?'b':''}\">\u003c/span>${p.name}\u003c/h2>\n        ${i===1?`\u003clabel class=\"toggle\">\u003cinput id=\"link\" type=\"checkbox\" ${linked?'checked':''}>Same as Pool A\u003c/label>`:''}\u003c/div>\n        ${['L','W','D'].map(k=>`\u003cdiv class=\"ctrl\">\u003clabel class=\"label\" for=\"n${i}${k}\">${names[k]}\u003c/label>\n          \u003cinput id=\"s${i}${k}\" type=\"range\" min=\"${RANGES[k][0]}\" max=\"${RANGES[k][1]}\" step=\"${RANGES[k][2]}\" value=\"${p[k]}\" ${lock?'disabled':''} aria-label=\"${names[k]} slider\">\n          \u003cdiv class=\"box\">\u003cinput id=\"n${i}${k}\" type=\"number\" min=\"0\" step=\"any\" inputmode=\"decimal\" value=\"${r(disp[k](p[k]),dec[k])}\" ${lock?'disabled':''}>\u003cspan>${unitOf[k]()}\u003c/span>\u003c/div>\u003c/div>`).join('')}\n        \u003cdiv class=\"mini\" id=\"mini${i}\">\u003c/div>`;\n      host.appendChild(el);\n    });\n    pools.forEach((p,i)=>['L','W','D'].forEach(k=>{\n      const s=document.getElementById(`s${i}${k}`),n=document.getElementById(`n${i}${k}`);\n      s.addEventListener('input',()=>{p[k]=parseFloat(s.value);n.value=r(disp[k](p[k]),dec[k]);after(i);});\n      n.addEventListener('input',()=>{const v=parseFloat(n.value);p[k]=isFinite(v)&&v>=0?back[k](v):0;s.value=p[k];after(i);});\n    }));\n    document.getElementById('link').addEventListener('change',e=>{linked=e.target.checked;if(linked)copy();build();render();});\n  }\n  function copy(){Object.assign(pools[1],{L:pools[0].L,W:pools[0].W,D:pools[0].D,S:pools[0].S});}\n  function after(i){\n    if(i===0&&linked){copy();['L','W','D'].forEach(k=>{document.getElementById(`s1${k}`).value=pools[1][k];document.getElementById(`n1${k}`).value=r(disp[k](pools[1][k]),dec[k]);});}\n    render();\n  }\n\n  const mass=k=>M()?`${fmt(k)} kg`:`${fmt(k*KG2LB)} lb`;\n  const loadTxt=c=>M()?`${fmt(c.kgm2)} kg/m²`:`${fmt(c.kgm2*KGM2_PSF,1)} psf`;\n\n  function render(){\n    const cs=pools.map(calc);\n    cs.forEach((c,i)=>{\n      document.getElementById('mini'+i).innerHTML=`\n        \u003cdiv>\u003cdiv class=\"label\">Weight\u003c/div>\u003cdiv class=\"v\">${mass(c.t)}\u003c/div>\u003cdiv class=\"s\">${mass(c.w)} water + ${mass(c.s.total)} pool\u003c/div>\u003c/div>\n        \u003cdiv>\u003cdiv class=\"label\">Floor load\u003c/div>\u003cdiv class=\"v\">${loadTxt(c)}\u003c/div>\u003cdiv class=\"s\">${fmt(c.kpa,2)} kN/m²\u003c/div>\u003c/div>\n        \u003cdiv>\u003cdiv class=\"label\">Volume\u003c/div>\u003cdiv class=\"v\">${M()?fmt(c.v*1000)+' L':fmt(c.v*M3_GAL)+' gal'}\u003c/div>\u003cdiv class=\"s\">${M()?fmt(c.v,2)+' m³':fmt(c.v*35.3147,1)+' ft³'}\u003c/div>\u003c/div>\n        \u003cdiv>\u003cdiv class=\"label\">Wall push\u003c/div>\u003cdiv class=\"v\">${M()?fmt(c.wall)+' N/m':fmt(c.wall*NM_LBFFT,1)+' lbf/ft'}\u003c/div>\u003cdiv class=\"s\">${M()?fmt(c.long/1000,2)+' kN on long wall':fmt(c.long*0.224809)+' lbf on long wall'}\u003c/div>\u003c/div>`;\n    });\n    const tw=cs[0].t+cs[1].t,tv=cs[0].v+cs[1].v,ta=cs[0].a+cs[1].a,worst=cs[0].kpa>=cs[1].kpa?cs[0]:cs[1];\n    document.getElementById('t-weight').innerHTML=M()?`${fmt(tw)}\u003csmall>kg\u003c/small>`:`${fmt(tw*KG2LB)}\u003csmall>lb\u003c/small>`;\n    document.getElementById('t-load').innerHTML=M()?`${fmt(worst.kgm2)}\u003csmall>kg/m²\u003c/small>`:`${fmt(worst.kgm2*KGM2_PSF,1)}\u003csmall>psf\u003c/small>`;\n    document.getElementById('t-vol').innerHTML=M()?`${fmt(tv*1000)}\u003csmall>L\u003c/small>`:`${fmt(tv*M3_GAL)}\u003csmall>gal\u003c/small>`;\n    document.getElementById('t-area').innerHTML=M()?`${fmt(ta,1)}\u003csmall>m²\u003c/small>`:`${fmt(ta*M2_FT2)}\u003csmall>ft²\u003c/small>`;\n\n    plan();section(pools[0],cs[0]);renderBuild(cs);\n  }\n\n  function plan(){\n    const gap=1,w=pools[0].L+gap+pools[1].L,h=Math.max(pools[0].W,pools[1].W),pad=Math.max(w,h)*.08+.4;\n    const VW=w+pad*2,VH=h+pad*2,fs=Math.max(VW,VH)*.034,lbl=m=>M()?`${fmt(m,2)} m`:`${fmt(m*M2FT,1)} ft`;\n    let x=pad,o=`\u003cdefs>\u003cpattern id=\"ripple\" width=\"${fs*2}\" height=\"${fs*1}\" patternUnits=\"userSpaceOnUse\">\u003cpath d=\"M0 ${fs*.5} q${fs*.5} -${fs*.35} ${fs} 0 t${fs} 0\" fill=\"none\" stroke=\"#ffffff\" stroke-opacity=\".55\" stroke-width=\"${fs*.08}\"/>\u003c/pattern>\u003c/defs>`;\n    pools.forEach((p,i)=>{const y=pad+(h-p.W)/2;\n      o+=`\u003crect x=\"${x}\" y=\"${y}\" width=\"${p.L}\" height=\"${p.W}\" rx=\"${fs*.15}\" fill=\"${i?'#d3eef6':'#a9dcec'}\" stroke=\"#b98552\" stroke-width=\"${fs*.4}\"/>`;\n      o+=`\u003crect x=\"${x}\" y=\"${y}\" width=\"${p.L}\" height=\"${p.W}\" fill=\"url(#ripple)\"/>`;\n      o+=`\u003ctext x=\"${x+p.L/2}\" y=\"${y+p.W/2}\" text-anchor=\"middle\" dominant-baseline=\"middle\" font-size=\"${fs*1.25}\" font-weight=\"700\" fill=\"#066a8e\" font-family=\"monospace\">${p.name}\u003c/text>`;\n      o+=`\u003ctext x=\"${x+p.L/2}\" y=\"${y-fs*.8}\" text-anchor=\"middle\" font-size=\"${fs}\" fill=\"#5d7681\" font-family=\"monospace\">${lbl(p.L)}\u003c/text>`;\n      o+=`\u003ctext x=\"${x+p.L/2}\" y=\"${y+p.W+fs*1.6}\" text-anchor=\"middle\" font-size=\"${fs}\" fill=\"#5d7681\" font-family=\"monospace\">↕ ${lbl(p.W)}\u003c/text>`;\n      x+=p.L+gap;});\n    document.getElementById('plan').innerHTML=`\u003csvg viewBox=\"0 0 ${VW} ${VH}\" role=\"img\" aria-label=\"Plan view of both pools to scale\">${o}\u003c/svg>`;\n  }\n\n  function section(p,c){\n    // schematic cross-section: wall on left, water, pressure triangle; water height scales with depth up to 1.2 m\n    const W=420,H=230,floor=190,wallX=70,maxH=150;\n    const wh=Math.max(4,Math.min(1,p.D/0.8)*maxH), top=floor-wh, wallTop=Math.min(top-26,floor-40);\n    const tri=Math.max(10,wh*.9);\n    const dTxt=M()?`${fmt(p.D*100,1)} cm`:`${fmt(p.D*M2IN,2)} in`;\n    const pTxt=M()?`${fmt(c.base/1000,2)} kPa at base`:`${fmt(c.base*0.020885,1)} psf at base`;\n    const fTxt=M()?`${fmt(c.wall)} N per metre of wall`:`${fmt(c.wall*NM_LBFFT,1)} lbf per foot of wall`;\n    const arrows=[.25,.5,.75,1].map(f=>{const y=top+wh*f-1,len=tri*f;return `\u003cline x1=\"${wallX+12+len}\" y1=\"${y}\" x2=\"${wallX+16}\" y2=\"${y}\" stroke=\"#066a8e\" stroke-width=\"2\"/>\u003cpath d=\"M${wallX+14} ${y} l7 -4 v8z\" fill=\"#066a8e\"/>`;}).join('');\n    document.getElementById('section').innerHTML=`\u003csvg viewBox=\"0 0 ${W} ${H}\" role=\"img\" aria-label=\"Water pushing on the pool wall\">\n      \u003crect x=\"0\" y=\"${floor}\" width=\"${W}\" height=\"${H-floor}\" fill=\"#f5ebdf\"/>\n      ${[0,1,2,3,4,5,6].map(i=>`\u003cline x1=\"${i*64+20}\" y1=\"${floor}\" x2=\"${i*64+20}\" y2=\"${H}\" stroke=\"#e3cfb6\" stroke-width=\"1.5\"/>`).join('')}\n      \u003crect x=\"${wallX}\" y=\"${wallTop}\" width=\"12\" height=\"${floor-wallTop}\" fill=\"#b98552\"/>\n      \u003crect x=\"${wallX+12}\" y=\"${floor-8}\" width=\"${W-wallX-12}\" height=\"8\" fill=\"#d4ad85\"/>\n      \u003crect x=\"${wallX+12}\" y=\"${top}\" width=\"${W-wallX-12}\" height=\"${floor-8-top}\" fill=\"#bfe5f1\"/>\n      \u003cpath d=\"M${wallX+12} ${top} q20 -4 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0\" fill=\"none\" stroke=\"#0a8fbd\" stroke-width=\"2\"/>\n      \u003cpath d=\"M${wallX+12} ${top} L${wallX+12} ${floor-8} L${wallX+12+tri} ${floor-8} Z\" fill=\"#0a8fbd\" fill-opacity=\".14\"/>\n      ${arrows}\n      \u003cline x1=\"${wallX-18}\" y1=\"${top}\" x2=\"${wallX-18}\" y2=\"${floor-8}\" stroke=\"#0e2a35\" stroke-width=\"1.2\"/>\n      \u003cline x1=\"${wallX-24}\" y1=\"${top}\" x2=\"${wallX-12}\" y2=\"${top}\" stroke=\"#0e2a35\" stroke-width=\"1.2\"/>\n      \u003cline x1=\"${wallX-24}\" y1=\"${floor-8}\" x2=\"${wallX-12}\" y2=\"${floor-8}\" stroke=\"#0e2a35\" stroke-width=\"1.2\"/>\n      \u003ctext x=\"${wallX-26}\" y=\"${(top+floor-8)/2}\" text-anchor=\"end\" dominant-baseline=\"middle\" font-size=\"12\" fill=\"#0e2a35\" font-family=\"monospace\">${dTxt}\u003c/text>\n      \u003ctext x=\"${W-12}\" y=\"${Math.min(top-12,floor-60)}\" text-anchor=\"end\" font-size=\"13\" font-weight=\"600\" fill=\"#066a8e\" font-family=\"monospace\">${pTxt}\u003c/text>\n      \u003ctext x=\"${W-12}\" y=\"${Math.min(top-12,floor-60)+17}\" text-anchor=\"end\" font-size=\"12\" fill=\"#5d7681\" font-family=\"monospace\">${fTxt}\u003c/text>\n      \u003ctext x=\"${W-12}\" y=\"${H-12}\" text-anchor=\"end\" font-size=\"11\" fill=\"#9a7a58\" font-family=\"monospace\">Pool A wall, cross-section (schematic)\u003c/text>\n    \u003c/svg>`;\n  }\n\n  function setUnit(u){unit=u;document.getElementById('u-metric').setAttribute('aria-pressed',u==='metric');document.getElementById('u-imperial').setAttribute('aria-pressed',u==='imperial');build();buildCtrl();render();}\n  document.getElementById('u-metric').onclick=()=>setUnit('metric');\n  document.getElementById('u-imperial').onclick=()=>setUnit('imperial');\n  build();buildCtrl();render();\n  document.getElementById('poolPdf').onclick=()=>{\n    const [a,b]=pools.map(calc);\n    const dualMass=k=>fmt(k)+' kg / '+fmt(k*KG2LB)+' lb';\n    const dualVol=v=>fmt(v*1000)+' L / '+fmt(v*M3_GAL)+' US gal';\n    const dualLength=m=>fmt(m,2)+' m / '+fmt(m*M2FT,2)+' ft';\n    document.getElementById('poolReportSummary').textContent='Combined filled weight: '+dualMass(a.t+b.t)+' · Water: '+dualVol(a.v+b.v);\n    const rows=[\n      ['Footprint dimensions',(c,p)=>dualLength(p.L)+' × '+dualLength(p.W)],\n      ['Water depth',(c,p)=>fmt(p.D*100,1)+' cm / '+fmt(p.D*M2IN,2)+' in'],\n      ['Water volume',c=>dualVol(c.v)],\n      ['Empty pool',c=>dualMass(c.s.total)],\n      ['Filled pool',c=>dualMass(c.t)],\n      ['Average floor load',c=>fmt(c.kpa,2)+' kN/m² / '+fmt(c.kgm2*KGM2_PSF,1)+' psf'],\n      ['Wall force per length',c=>fmt(c.wall)+' N/m / '+fmt(c.wall*NM_LBFFT,1)+' lbf/ft'],\n      ['Base / wall plywood',c=>c.s.tb+' / '+c.s.tw+' mm']\n    ];\n    const tbody=document.getElementById('poolReportRows');tbody.replaceChildren();\n    for(const [name,value] of rows){\n      const tr=document.createElement('tr');\n      for(const text of [name,value(a,pools[0]),value(b,pools[1])]){\n        const td=document.createElement('td');td.textContent=text;tr.append(td);\n      }\n      tbody.append(tr);\n    }\n    document.getElementById('poolReportBuild').textContent=MATS[B.mat].n+' · '+B.frame+'% framing allowance · '+(B.liner?'EPDM liner included':'No liner allowance');\n    const drawing=document.querySelector('#plan svg').cloneNode(true);\n    const ripple=drawing.querySelector('#ripple');ripple.id='print-ripple';\n    drawing.querySelectorAll('[fill=\"url(#ripple)\"]').forEach(rect=>rect.setAttribute('fill','url(#print-ripple)'));\n    document.getElementById('poolReportPlan').replaceChildren(drawing);\n    window.print();\n  };\n})();\n\u003c/script>\n\u003c/body>\n\u003c/html>"</script>
+<script>
+{
+  const cable=document.getElementById('cableView'),pool=document.getElementById('poolView');
+  const cableTab=document.getElementById('cableTab'),poolTab=document.getElementById('poolTab');
+  const power=document.getElementById('powerView'),powerTab=document.getElementById('powerTab');
+  let observer;
+  pool.addEventListener('load',()=>{
+    observer?.disconnect();
+    const content=pool.contentDocument.querySelector('.wrap');
+    if(!content)return;
+    observer=new ResizeObserver(()=>{if(!pool.hidden)pool.style.height=Math.ceil(content.getBoundingClientRect().height)+'px';});
+    observer.observe(content);
+  });
+  function showSection(section){
+    cable.hidden=section!=='cable';pool.hidden=section!=='pool';power.hidden=section!=='power';
+    cableTab.setAttribute('aria-pressed',String(!cable.hidden));
+    poolTab.setAttribute('aria-pressed',String(!pool.hidden));
+    powerTab.setAttribute('aria-pressed',String(!power.hidden));
+    if(!pool.hidden&&!pool.hasAttribute('srcdoc'))pool.srcdoc=JSON.parse(document.getElementById('poolSource').textContent);
+    document.body.classList.toggle('print-power',section==='power');
+  }
+  cableTab.onclick=()=>showSection('cable');
+  poolTab.onclick=()=>showSection('pool');
+  powerTab.onclick=()=>showSection('power');
+
+}
+</script>
+<script>
+{
+  const get=id=>document.getElementById('power'+id);
+  const fields=['Full','Low','Voltage','Breaker','Factor','Reserve'].map(get);
+  function estimate(full,low,voltage,breaker,pf,reserve){
+    const watts=505*full+260*low;
+    const available=breaker*.8-reserve;
+    const maxWatts=available*voltage*pf;
+    const groups=[];
+    let fits=true;
+    for(const [count,draw,mode] of [[full,505,'full'],[low,260,'low']]){
+      if(count&&draw>maxWatts+1e-8){fits=false;break;}
+      for(let i=0;i<count;i++){
+        let group=groups.find(g=>g.watts+draw<=maxWatts+1e-8);
+        if(!group){group={full:0,low:0,watts:0};groups.push(group);}
+        group[mode]++;group.watts+=draw;
+      }
+    }
+    return {watts,amps:watts/(voltage*pf),available,groups:fits?groups:[],fits};
+  }
+  function updatePower(){
+    const rows=get('Rows');rows.replaceChildren();
+    const valid=fields.every(field=>field.validity.valid&&field.value!=='');
+    if(!valid){
+      for(const id of ['Count','Watts','Amps','Circuits'])get(id).textContent='—';
+      get('Budget').textContent='';get('PrintInputs').textContent='';
+      get('Status').textContent='Enter valid numbers to calculate the circuit groups.';
+      get('Pdf').disabled=true;return;
+    }
+    const [full,low,voltage,breaker,pf,reserve]=fields.map(field=>Number(field.value));
+    const plan=estimate(full,low,voltage,breaker,pf,reserve);
+    get('Count').textContent=full+low;
+    get('Watts').textContent=plan.watts.toLocaleString()+' W';
+    get('Amps').textContent=plan.amps.toFixed(2)+' A';
+    get('Circuits').textContent=plan.fits?plan.groups.length:'—';
+    get('Budget').textContent='Projector budget per circuit after other load: '+Math.max(0,plan.available).toFixed(2)+' A.';
+    get('PrintInputs').textContent=full+' full / '+low+' low · '+voltage+' V · '+breaker+' A breakers · PF '+pf.toFixed(2)+' · Other load '+reserve.toFixed(2)+' A per circuit';
+    get('Status').textContent=plan.fits?(plan.groups.length?'Group numbers are placeholders for verified venue circuits.':'Enter a projector count to build the schedule.'):'At least one projector exceeds the available budget on a single circuit under these assumptions.';
+    for(const [i,g] of plan.groups.entries()){
+      const row=rows.insertRow();
+      for(const value of [i+1,g.full,g.low,g.watts.toLocaleString()+' W',(g.watts/(voltage*pf)+reserve).toFixed(2)+' A'])row.insertCell().textContent=value;
+    }
+    get('Pdf').disabled=false;
+  }
+  fields.forEach(field=>field.addEventListener('input',updatePower));
+  get('Pdf').onclick=()=>window.print();
+  updatePower();
+}
+</script>
+</html>

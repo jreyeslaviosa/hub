@@ -1,0 +1,46 @@
+SNUG — VIDEO TECH RIDER
+==================================
+
+PLAYBACK
+
+DC room PC  : Use the existing PC with 3 graphics cards.
+              Drives 8 long-wall TVs, 3 TVs on the hearth wall,
+              and 1 local operator monitor.
+Mac mini M6 : 3 entrance TVs.
+Total       : 14 room TVs + 1 local operator monitor.
+
+HDMI ROUTING
+
+Use the DC room PC for Windows playback. Cable estimates start from
+the assumed equipment position in the MAD Labs server room. Route
+cables overhead via the large opening or a nearby cable access point.
+
+HDMI LENGTHS — ESTIMATES
+
+Final columns include 5 m (16.4 ft) extra per run.
+
+Run               Source      Route m  Route ft  With +5 m  With +5 m (ft)
+--------------------------------------------------------------------------
+Long wall 1       PC             14.8      48.6       19.8            65.0
+Long wall 2       PC             13.7      44.9       18.7            61.3
+Long wall 3       PC             14.2      46.6       19.2            63.0
+Long wall 4       PC             15.3      50.3       20.3            66.7
+Long wall 5       PC             16.4      54.0       21.4            70.4
+Long wall 6       PC             17.6      57.6       22.6            74.0
+Long wall 7       PC             18.7      61.3       23.7            77.7
+Long wall 8       PC             19.8      65.0       24.8            81.4
+TV 1              PC              8.6      28.2       13.6            44.6
+TV 2 (hearth)     PC             10.4      34.1       15.4            50.5
+TV 3              PC             12.2      40.1       17.2            56.5
+Entrance 1        Mac mini       24.9      81.8       29.9            98.2
+Entrance 2        Mac mini       23.8      78.1       28.8            94.5
+Entrance 3        Mac mini       22.7      74.4       27.7            90.8
+
+Long wall 1 is nearest the entrance; 8 is nearest the bar.
+Entrance 1 is farthest from the long TV wall.
+TV 2 is estimated midway along the cable path between TV 1 and TV 3.
+
+Planning assumption: equipment is 1.4 m behind the opening centre,
+with ports 0.55 m above the floor and an overhead path at 3.22 m.
+Confirm the actual rack location and cable paths before ordering.
+The operator monitor uses a separate local cable; length to be confirmed.
