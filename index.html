@@ -31,7 +31,8 @@ const projects = {
 
 // Add approved PDFs with a title, project key, and a relative PDF path or download URL.
 const riders = [
-  { title: 'Snug · MAD Labs Video Tech Rider', project: 'snug', url: './riders/SNUG-MAD-Labs-Tech-Rider.txt', format: 'TXT' }
+  { title: 'Snug · MAD Labs Video Tech Rider', project: 'snug', url: './riders/SNUG-MAD-Labs-Tech-Rider.txt', format: 'TXT' },
+  { title: 'Snug · Timber Bar Construction Drawing', project: 'snug', url: './snug/bar/SNUG-JR-Gallery-Bar-Drawing.pdf', format: 'PDF' }
 ];
 const main = document.querySelector('#main');
 const menu = document.querySelector('#projects');
@@ -110,6 +111,13 @@ function render() {
   main.querySelector('h1').textContent = project.name;
   main.querySelector('p').textContent = project.description;
   main.querySelector('a').href = project.url;
+  if (id === 'snug') {
+    const bar = document.createElement('a');
+    bar.className = 'button';
+    bar.href = './snug/bar/';
+    bar.textContent = 'Timber bar · 3D assembly';
+    main.querySelector('.heading').append(bar);
+  }
   const frame = main.querySelector('iframe');
   frame.title = project.name + ' planner';
   frame.src = project.url;
