@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IGNITE 2027 Downtown locations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div class="app">
+
+  <nav class="sites" aria-label="Locations">
+    <p class="project">IGNITE 2027<span>Downtown</span></p>
+    <ul id="site-list"></ul>
+  </nav>
+
+  <section class="stage" aria-label="3D model">
+    <div id="view"></div>
+    <p class="status" id="status" role="status"></p>
+    <p class="part" id="part" hidden></p>
+    <div class="tools">
+      <button type="button" id="view-front">Front view</button>
+      <button type="button" id="view-angle">Angled view</button>
+      <button type="button" id="toggle-marks" aria-pressed="true">Outlines and markers</button>
+    </div>
+    <p class="hint">Drag to orbit. Scroll or pinch to zoom. Right-drag to pan.</p>
+  </section>
+
+  <aside class="sheet" id="sheet" aria-live="polite"></aside>
+
+</div>
+
+<dialog id="lightbox" aria-label="Drawing">
+  <form method="dialog"><button type="submit">Close</button></form>
+  <img alt="">
+</dialog>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

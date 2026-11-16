@@ -1,0 +1,66 @@
+newmtl ground
+Kd 0.25 0.35 0.2
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl concrete
+Kd 0.7 0.7 0.7
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl block
+Kd 0.86 0.82 0.7
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl trim
+Kd 0.95 0.95 0.93
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl glass
+Kd 0.12 0.12 0.15
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl door
+Kd 0.95 0.95 0.9
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl column
+Kd 0.92 0.9 0.85
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl roof
+Kd 0.55 0.58 0.62
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl dormer
+Kd 0.9 0.88 0.8
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl infill
+Kd 0.97 0.97 0.97
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl marker
+Kd 1 0.85 0
+Ka 0 0 0
+d 1
+illum 1
+
