@@ -41,6 +41,14 @@ export const projectorModels = {
     detail: '10,600 lm, WUXGA, 3-chip DLP, 2 × 355 W lamps',
     lumens: 10600,
     watts: { max: 970, standby: 6 }
+  },
+  'PT-RZ31K': {
+    name: 'Panasonic PT-RZ31K',
+    detail: '31,000 lm centre (30,000 ANSI), WUXGA, 3-chip DLP, laser',
+    lumens: 31000,
+    volts: 208,
+    watts: { max: 2870, standby: 4 },
+    warning: 'Runs on 200–240 V only, so it will not run from a 110 V outlet. Plan 208 V or 240 V circuits.'
   }
 };
 
@@ -149,7 +157,9 @@ export default [
     folder: 'models/fau-west-wall/',
     obj: 'hec_west_wall.obj',
     mtl: 'hec_west_wall.mtl',
-    projectors: [],
+    projectors: [
+      { section: '10b', model: 'PT-RZ31K', count: 3 }
+    ],
     measurements: [
       { label: 'Wall width', m: 27.432, status: 'published' },
       { label: 'Wall height', m: 52.0 },
