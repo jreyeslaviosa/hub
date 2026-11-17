@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
-import locations from './locations.js';
+import locations, { projectorModels, power } from './locations.js';
 
 const $ = selector => document.querySelector(selector);
 const viewEl = $('#view');
@@ -181,6 +181,119 @@ function feet(m) {
   return ft ? `${ft}′ ${inches}″` : `${inches}″`;
 }
 
+// ---------- projector power plan ----------
+const MODES = [
+  ['max', 'Full power'],
+  ['normal', 'Normal'],
+  ['eco', 'Eco'],
+  ['standby', 'Standby']
+];
+const number = n => Math.round(n).toLocaleString('en-US');
+const ampsAt = watts => watts / power.volts;
+const ampText = watts => ampsAt(watts).toFixed(1) + ' A';
+
+// How many projectors of one model fit on a circuit of `breaker` amps, kept to the continuous limit.
+const perCircuit = (model, breaker) => Math.floor((breaker * power.continuousShare) / ampsAt(model.watts.max));
+
+function planFor(groupsList) {
+  const plan = { count: 0, circuits: 0, fits15: true, oversize: false, perCircuitOne: true,
+                 watts: { max: 0, normal: 0, eco: 0, standby: 0 }, groups: [] };
+  for (const group of groupsList) {
+    const model = projectorModels[group.model];
+    if (!model) { console.warn('Unknown projector model', group.model); continue; }
+    const per20 = perCircuit(model, 20);
+    const per15 = perCircuit(model, 15);
+    const circuits = per20 ? Math.ceil(group.count / per20) : group.count;
+    plan.count += group.count;
+    plan.circuits += circuits;
+    if (!per20) plan.oversize = true;
+    if (!per15 || Math.ceil(group.count / per15) !== circuits) plan.fits15 = false;
+    if (per20 !== 1) plan.perCircuitOne = false;
+    for (const [mode] of MODES) plan.watts[mode] += group.count * model.watts[mode];
+    plan.groups.push({ ...group, model });
+  }
+  return plan;
+}
+const siteProjectors = site => site.projectors || [];
+
+function circuitNote(plan) {
+  if (plan.oversize) return 'Needs a circuit larger than 20 A';
+  const size = plan.fits15 ? '15 A or 20 A' : '20 A';
+  return plan.perCircuitOne ? `${size}, one projector each` : size;
+}
+
+function figure(value, label) {
+  const wrap = el('div');
+  wrap.append(el('dt', '', label), el('dd', '', value));
+  return wrap;
+}
+
+function renderPower(site) {
+  sheetEl.append(el('h2', '', 'Projectors and power'));
+  const plan = planFor(siteProjectors(site));
+  if (!plan.count) {
+    sheetEl.append(el('p', 'empty', 'No projectors assigned yet. Add them to this location in locations.js.'));
+    return;
+  }
+
+  const rigs = el('ul', 'rigs');
+  for (const group of plan.groups) {
+    const item = el('li');
+    item.append(
+      el('span', 'section', group.section || site.code),
+      el('span', 'model', `${group.count} × ${group.model.name}`),
+      el('span', 'spec', `${group.model.detail}. ${number(group.model.watts.max)} W and ${ampText(group.model.watts.max)} each at full power.`)
+    );
+    rigs.append(item);
+  }
+  sheetEl.append(rigs);
+
+  const load = el('dl', 'load');
+  load.append(
+    figure(number(plan.watts.max) + ' W', 'At full power'),
+    figure(ampText(plan.watts.max), `At ${power.volts} V`),
+    figure(String(plan.circuits), `Circuit${plan.circuits === 1 ? '' : 's'}, ${circuitNote(plan)}`)
+  );
+  sheetEl.append(load);
+
+  const table = el('table', 'dims modes');
+  const head = el('tr');
+  for (const text of ['Mode', 'Watts', 'Amps']) {
+    const th = el('th', '', text);
+    th.scope = 'col';
+    head.append(th);
+  }
+  const thead = el('thead');
+  thead.append(head);
+  table.append(thead);
+  for (const [mode, label] of MODES) {
+    const tr = el('tr');
+    const th = el('th', '', label);
+    th.scope = 'row';
+    tr.append(th, el('td', 'm', number(plan.watts[mode]) + ' W'), el('td', 'ft', ampText(plan.watts[mode])));
+    table.append(tr);
+  }
+  sheetEl.append(table);
+
+  const btu = Math.round((plan.watts.max * 3.412) / 10) * 10;
+  sheetEl.append(el('p', 'basis',
+    `Watts are the manufacturer's published figures. Amps are planned at ${power.volts} V, with each circuit ` +
+    `loaded to no more than ${power.continuousShare * 100}% of its breaker because projectors run for hours. ` +
+    `Heat at full power is about ${number(btu)} BTU/h.`));
+}
+
+function renderTotals() {
+  const plan = planFor(locations.flatMap(siteProjectors));
+  const box = $('#totals');
+  if (!plan.count) { box.replaceChildren(); return; }
+  box.replaceChildren(
+    el('p', 'totals-title', 'All locations'),
+    el('p', '', `${plan.count} projector${plan.count === 1 ? '' : 's'}`),
+    el('p', '', `${number(plan.watts.max)} W, ${ampText(plan.watts.max)} at full power`),
+    el('p', '', `${plan.circuits} circuit${plan.circuits === 1 ? '' : 's'}`)
+  );
+}
+
 function renderSheet(site) {
   sheetEl.replaceChildren(
     el('p', 'code', site.code),
@@ -189,8 +302,11 @@ function renderSheet(site) {
     el('p', 'summary', site.summary)
   );
 
+  renderPower(site);
+
   if (site.measurements?.length) {
-    sheetEl.append(el('h2', '', 'Measurements'));
+    const more = el('details', 'more');
+    more.append(el('summary', '', `Measurements (${site.measurements.length})`));
     const table = el('table', 'dims');
     for (const row of site.measurements) {
       const tr = el('tr');
@@ -200,10 +316,10 @@ function renderSheet(site) {
       tr.append(th, el('td', 'm', row.m.toFixed(2) + ' m'), el('td', 'ft', feet(row.m)));
       table.append(tr);
     }
-    sheetEl.append(table);
     const published = site.measurements.some(row => row.status === 'published');
-    sheetEl.append(el('p', 'basis',
+    more.append(table, el('p', 'basis',
       (published ? 'Figures not marked published are estimates. ' : 'All figures are estimates. ') + (site.basis || '')));
+    sheetEl.append(more);
   }
 
   if (site.drawings?.length) {
@@ -240,7 +356,12 @@ for (const site of locations) {
   const button = el('button');
   button.type = 'button';
   button.dataset.id = site.id;
-  button.append(el('span', 'code', site.code), el('span', 'name', site.name));
+  const count = siteProjectors(site).reduce((sum, group) => sum + group.count, 0);
+  button.append(
+    el('span', 'code', site.code),
+    el('span', 'name', site.name),
+    el('span', 'count', count ? `${count} projector${count === 1 ? '' : 's'}` : 'No projectors yet')
+  );
   button.addEventListener('click', () => { location.hash = site.id; });
   item.append(button);
   listEl.append(item);
@@ -260,6 +381,7 @@ function select() {
   load(site);
 }
 addEventListener('hashchange', select);
+renderTotals();
 
 if (locations.length) select();
 else statusEl.textContent = 'No locations yet. Add one to locations.js.';

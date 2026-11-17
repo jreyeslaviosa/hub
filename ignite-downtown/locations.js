@@ -7,6 +7,24 @@
 //
 // All lengths are in metres; the viewer works out feet and inches.
 // status: 'published' for a figure from a published source, 'estimate' otherwise.
+//
+// projectors: one line per group, e.g. { section: '1b', model: 'PT-RZ120', count: 2 }.
+// model must be a key in projectorModels below; add a new model there first.
+
+// Power planning assumptions.
+export const power = {
+  volts: 110,            // US outlet voltage used for the amp figures
+  continuousShare: 0.8   // projectors run for hours, so a circuit carries at most 80% of its breaker rating
+};
+
+// Projector models with the manufacturer's published power figures, in watts.
+export const projectorModels = {
+  'PT-RZ120': {
+    name: 'Panasonic PT-RZ120',
+    detail: '12,000 lm, WUXGA, laser',
+    watts: { max: 1100, normal: 730, eco: 590, standby: 7 }
+  }
+};
 
 export default [
   {
@@ -21,6 +39,9 @@ export default [
     folder: 'models/new-river-inn/',
     obj: 'new_river_inn.obj',
     mtl: 'new_river_inn.mtl',
+    projectors: [
+      { section: '1b', model: 'PT-RZ120', count: 2 }
+    ],
     measurements: [
       { label: 'Main block length', m: 26.5 },
       { label: 'Main block depth', m: 11.5 },
@@ -53,6 +74,7 @@ export default [
     folder: 'models/flow-back/',
     obj: 'facade_mural.obj',
     mtl: 'facade_mural.mtl',
+    projectors: [],
     measurements: [
       { label: 'Mural width', m: 18.0 },
       { label: 'Mural height', m: 22.0 },
@@ -76,6 +98,7 @@ export default [
     folder: 'models/flow-canopy/',
     obj: 'site_canopy_wall.obj',
     mtl: 'site_canopy_wall.mtl',
+    projectors: [],
     measurements: [
       { label: 'Band width', m: 23.0 },
       { label: 'Band height', m: 1.7 },
@@ -99,6 +122,7 @@ export default [
     folder: 'models/fau-west-wall/',
     obj: 'hec_west_wall.obj',
     mtl: 'hec_west_wall.mtl',
+    projectors: [],
     measurements: [
       { label: 'Wall width', m: 27.432, status: 'published' },
       { label: 'Wall height', m: 52.0 },
