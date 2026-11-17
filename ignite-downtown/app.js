@@ -257,6 +257,9 @@ function renderPower(site) {
     item.append(
       el('span', 'section', group.section || site.code),
       el('span', 'model', `${group.count} × ${model.name}`),
+      ...(group.stacks ? [el('span', 'stack',
+        `${plural(group.stacks, 'stack')} of ${group.count / group.stacks}` +
+        (model.lumens ? `, about ${number(model.lumens * group.count / group.stacks)} lm per stack before losses` : ''))] : []),
       el('span', 'spec', `${model.detail}. ${number(model.watts.max)} W and ` +
         `${(model.watts.max / volts).toFixed(1)} A each at full power, at ${volts} V.`)
     );

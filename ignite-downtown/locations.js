@@ -10,6 +10,7 @@
 //
 // projectors: one line per group, e.g. { section: '1b', model: 'PT-RZ120', count: 2 }.
 // model must be a key in projectorModels below; add a new model there first.
+// stacks (optional): how many stacks the projectors are split into, e.g. count: 6, stacks: 2.
 // previz (optional): images for that section, e.g. [{ src: 'file.webp', title: 'What it shows' }].
 
 // Power planning assumptions.
@@ -34,6 +35,13 @@ export const projectorModels = {
     watts: { max: 2850, standby: 8 },
     warning: 'Runs on 200–240 V only, so it will not run from a 110 V outlet. Plan 208 V or 240 V circuits.',
     note: 'Rental houses commonly feed it from a 30 A, L6-30 circuit.'
+  },
+  'PT-DZ8700U': {
+    name: 'Panasonic PT-DZ8700U',
+    detail: '10,600 lm, WUXGA, 3-chip DLP, 2 × 355 W lamps',
+    lumens: 10600,
+    watts: { max: 970, standby: 6 },
+    note: 'The U model is the 120 V North American version. Discontinued, replaced by the PT-DZ10K.'
   }
 };
 
@@ -117,7 +125,9 @@ export default [
     folder: 'models/flow-canopy/',
     obj: 'site_canopy_wall.obj',
     mtl: 'site_canopy_wall.mtl',
-    projectors: [],
+    projectors: [
+      { section: '5', model: 'PT-DZ8700U', count: 6, stacks: 2 }
+    ],
     measurements: [
       { label: 'Band width', m: 23.0 },
       { label: 'Band height', m: 1.7 },
