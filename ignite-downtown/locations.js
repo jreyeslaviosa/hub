@@ -121,7 +121,10 @@ export default [
     obj: 'site_canopy_wall.obj',
     mtl: 'site_canopy_wall.mtl',
     projectors: [
-      { section: '5', model: 'PT-DZ8700U', count: 6, stacks: 2 }
+      {
+        section: '5', model: 'PT-DZ8700U', count: 6, stacks: 2,
+        previz: [{ src: '5_previz_test_pattern.webp', title: '5 previz, test pattern on the wall' }]
+      }
     ],
     measurements: [
       { label: 'Band width', m: 23.0 },
