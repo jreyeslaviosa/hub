@@ -40,8 +40,7 @@ export const projectorModels = {
     name: 'Panasonic PT-DZ8700U',
     detail: '10,600 lm, WUXGA, 3-chip DLP, 2 × 355 W lamps',
     lumens: 10600,
-    watts: { max: 970, standby: 6 },
-    note: 'The U model is the 120 V North American version. Discontinued, replaced by the PT-DZ10K.'
+    watts: { max: 970, standby: 6 }
   }
 };
 
