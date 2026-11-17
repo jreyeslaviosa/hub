@@ -10,6 +10,7 @@
 //
 // projectors: one line per group, e.g. { section: '1b', model: 'PT-RZ120', count: 2 }.
 // model must be a key in projectorModels below; add a new model there first.
+// previz (optional): images for that section, e.g. [{ src: 'file.webp', title: 'What it shows' }].
 
 // Power planning assumptions.
 export const power = {
@@ -50,7 +51,10 @@ export default [
     obj: 'new_river_inn.obj',
     mtl: 'new_river_inn.mtl',
     projectors: [
-      { section: '1b', model: 'PT-RZ120', count: 2 }
+      {
+        section: '1b', model: 'PT-RZ120', count: 2,
+        previz: [{ src: '1b_previz_test_pattern.webp', title: '1b previz, test pattern on the facade' }]
+      }
     ],
     measurements: [
       { label: 'Main block length', m: 26.5 },

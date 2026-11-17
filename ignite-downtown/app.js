@@ -262,6 +262,7 @@ function renderPower(site) {
     );
     if (model.warning) item.append(el('span', 'warn', model.warning));
     if (model.note) item.append(el('span', 'spec', model.note));
+    if (group.previz?.length) item.append(thumbnails(site, group.previz, 'drawings previz'));
     rigs.append(item);
   }
   sheetEl.append(rigs);
@@ -349,26 +350,31 @@ function renderSheet(site) {
 
   if (site.drawings?.length) {
     sheetEl.append(el('h2', '', site.drawings.length > 1 ? 'Drawings' : 'Drawing'));
-    const list = el('div', 'drawings');
-    for (const drawing of site.drawings) {
-      const button = el('button');
-      button.type = 'button';
-      const img = el('img');
-      img.src = site.folder + drawing.src;
-      img.alt = '';
-      img.loading = 'lazy';
-      button.append(img, el('span', '', drawing.title));
-      button.addEventListener('click', () => {
-        const full = lightbox.querySelector('img');
-        full.src = img.src;
-        full.alt = drawing.title + ', ' + site.name;
-        lightbox.showModal();
-      });
-      list.append(button);
-    }
-    sheetEl.append(list);
+    sheetEl.append(thumbnails(site, site.drawings));
   }
   sheetEl.scrollTop = 0;
+}
+
+// Image thumbnails that open full size in the lightbox.
+function thumbnails(site, images, className = 'drawings') {
+  const list = el('div', className);
+  for (const image of images) {
+    const button = el('button');
+    button.type = 'button';
+    const img = el('img');
+    img.src = site.folder + image.src;
+    img.alt = '';
+    img.loading = 'lazy';
+    button.append(img, el('span', '', image.title));
+    button.addEventListener('click', () => {
+      const full = lightbox.querySelector('img');
+      full.src = img.src;
+      full.alt = image.title + ', ' + site.name;
+      lightbox.showModal();
+    });
+    list.append(button);
+  }
+  return list;
 }
 
 lightbox.addEventListener('click', event => {
