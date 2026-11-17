@@ -89,7 +89,10 @@ export default [
     obj: 'facade_mural.obj',
     mtl: 'facade_mural.mtl',
     projectors: [
-      { section: '2', model: 'HDX-W20-FLEX', count: 2 }
+      {
+        section: '2', model: 'HDX-W20-FLEX', count: 2,
+        previz: [{ src: '2_previz_test_pattern.webp', title: '2 previz, test pattern on the mural panel' }]
+      }
     ],
     measurements: [
       { label: 'Mural width', m: 18.0 },
