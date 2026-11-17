@@ -189,38 +189,51 @@ const MODES = [
   ['standby', 'Standby']
 ];
 const number = n => Math.round(n).toLocaleString('en-US');
-const ampsAt = watts => watts / power.volts;
-const ampText = watts => ampsAt(watts).toFixed(1) + ' A';
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+const voltsOf = model => model.volts || power.volts;
+const byVolts = map => [...map.entries()].sort((a, b) => a[0] - b[0]);
 
 // How many projectors of one model fit on a circuit of `breaker` amps, kept to the continuous limit.
-const perCircuit = (model, breaker) => Math.floor((breaker * power.continuousShare) / ampsAt(model.watts.max));
+const perCircuit = (model, breaker) =>
+  Math.floor((breaker * power.continuousShare) / (model.watts.max / voltsOf(model)));
 
-function planFor(groupsList) {
-  const plan = { count: 0, circuits: 0, fits15: true, oversize: false, perCircuitOne: true,
-                 watts: { max: 0, normal: 0, eco: 0, standby: 0 }, groups: [] };
-  for (const group of groupsList) {
+function planFor(groupList) {
+  const plan = { count: 0, circuits: new Map(), notes: new Set(), watts: {}, amps: {}, groups: [] };
+  for (const group of groupList) {
     const model = projectorModels[group.model];
     if (!model) { console.warn('Unknown projector model', group.model); continue; }
+    const volts = voltsOf(model);
     const per20 = perCircuit(model, 20);
     const per15 = perCircuit(model, 15);
     const circuits = per20 ? Math.ceil(group.count / per20) : group.count;
+    const fits15 = per15 > 0 && Math.ceil(group.count / per15) === circuits;
     plan.count += group.count;
-    plan.circuits += circuits;
-    if (!per20) plan.oversize = true;
-    if (!per15 || Math.ceil(group.count / per15) !== circuits) plan.fits15 = false;
-    if (per20 !== 1) plan.perCircuitOne = false;
-    for (const [mode] of MODES) plan.watts[mode] += group.count * model.watts[mode];
+    plan.circuits.set(volts, (plan.circuits.get(volts) || 0) + circuits);
+    plan.notes.add(per20
+      ? `${fits15 ? '15 A or 20 A' : '20 A'} at ${volts} V${per20 === 1 ? ', one projector each' : ''}`
+      : `larger than 20 A at ${volts} V`);
     plan.groups.push({ ...group, model });
   }
+  // only modes that every projector here has a published figure for
+  plan.modes = MODES.filter(([mode]) => plan.groups.every(g => g.model.watts[mode] !== undefined));
+  for (const [mode] of plan.modes) {
+    plan.watts[mode] = 0;
+    plan.amps[mode] = new Map();
+    for (const g of plan.groups) {
+      const watts = g.count * g.model.watts[mode];
+      const volts = voltsOf(g.model);
+      plan.watts[mode] += watts;
+      plan.amps[mode].set(volts, (plan.amps[mode].get(volts) || 0) + watts / volts);
+    }
+  }
+  plan.circuitTotal = [...plan.circuits.values()].reduce((a, b) => a + b, 0);
   return plan;
 }
 const siteProjectors = site => site.projectors || [];
 
-function circuitNote(plan) {
-  if (plan.oversize) return 'Needs a circuit larger than 20 A';
-  const size = plan.fits15 ? '15 A or 20 A' : '20 A';
-  return plan.perCircuitOne ? `${size}, one projector each` : size;
-}
+const ampsValue = map => byVolts(map).map(([, a]) => a.toFixed(1) + ' A').join(' + ');
+const voltsList = map => byVolts(map).map(([v]) => v + ' V').join(' and ');
+const ampsWithVolts = map => byVolts(map).map(([v, a]) => `${a.toFixed(1)} A at ${v} V`).join(', ');
 
 function figure(value, label) {
   const wrap = el('div');
@@ -238,12 +251,17 @@ function renderPower(site) {
 
   const rigs = el('ul', 'rigs');
   for (const group of plan.groups) {
+    const model = group.model;
+    const volts = voltsOf(model);
     const item = el('li');
     item.append(
       el('span', 'section', group.section || site.code),
-      el('span', 'model', `${group.count} × ${group.model.name}`),
-      el('span', 'spec', `${group.model.detail}. ${number(group.model.watts.max)} W and ${ampText(group.model.watts.max)} each at full power.`)
+      el('span', 'model', `${group.count} × ${model.name}`),
+      el('span', 'spec', `${model.detail}. ${number(model.watts.max)} W and ` +
+        `${(model.watts.max / volts).toFixed(1)} A each at full power, at ${volts} V.`)
     );
+    if (model.warning) item.append(el('span', 'warn', model.warning));
+    if (model.note) item.append(el('span', 'spec', model.note));
     rigs.append(item);
   }
   sheetEl.append(rigs);
@@ -251,8 +269,9 @@ function renderPower(site) {
   const load = el('dl', 'load');
   load.append(
     figure(number(plan.watts.max) + ' W', 'At full power'),
-    figure(ampText(plan.watts.max), `At ${power.volts} V`),
-    figure(String(plan.circuits), `Circuit${plan.circuits === 1 ? '' : 's'}, ${circuitNote(plan)}`)
+    figure(ampsValue(plan.amps.max), 'At ' + voltsList(plan.amps.max)),
+    figure(String(plan.circuitTotal),
+      `${plan.circuitTotal === 1 ? 'Circuit' : 'Circuits'}, ${[...plan.notes].join('; ')}`)
   );
   sheetEl.append(load);
 
@@ -266,31 +285,37 @@ function renderPower(site) {
   const thead = el('thead');
   thead.append(head);
   table.append(thead);
-  for (const [mode, label] of MODES) {
+  for (const [mode, label] of plan.modes) {
     const tr = el('tr');
     const th = el('th', '', label);
     th.scope = 'row';
-    tr.append(th, el('td', 'm', number(plan.watts[mode]) + ' W'), el('td', 'ft', ampText(plan.watts[mode])));
+    tr.append(th, el('td', 'm', number(plan.watts[mode]) + ' W'), el('td', 'ft', ampsValue(plan.amps[mode])));
     table.append(tr);
   }
   sheetEl.append(table);
 
   const btu = Math.round((plan.watts.max * 3.412) / 10) * 10;
+  const missing = plan.modes.length < MODES.length
+    ? ' Modes without a published figure for every projector here are left out.' : '';
   sheetEl.append(el('p', 'basis',
-    `Watts are the manufacturer's published figures. Amps are planned at ${power.volts} V, with each circuit ` +
-    `loaded to no more than ${power.continuousShare * 100}% of its breaker because projectors run for hours. ` +
-    `Heat at full power is about ${number(btu)} BTU/h.`));
+    `Watts are the manufacturers' published figures.${missing} Amps are planned at ${voltsList(plan.amps.max)}, ` +
+    `with each circuit loaded to no more than ${power.continuousShare * 100}% of its breaker because projectors ` +
+    `run for hours. Heat at full power is about ${number(btu)} BTU/h.`));
 }
 
 function renderTotals() {
   const plan = planFor(locations.flatMap(siteProjectors));
   const box = $('#totals');
   if (!plan.count) { box.replaceChildren(); return; }
+  const circuits = byVolts(plan.circuits);
   box.replaceChildren(
     el('p', 'totals-title', 'All locations'),
-    el('p', '', `${plan.count} projector${plan.count === 1 ? '' : 's'}`),
-    el('p', '', `${number(plan.watts.max)} W, ${ampText(plan.watts.max)} at full power`),
-    el('p', '', `${plan.circuits} circuit${plan.circuits === 1 ? '' : 's'}`)
+    el('p', '', plural(plan.count, 'projector')),
+    el('p', '', `${number(plan.watts.max)} W at full power`),
+    el('p', '', ampsWithVolts(plan.amps.max)),
+    el('p', '', circuits.length === 1
+      ? `${plural(plan.circuitTotal, 'circuit')} at ${circuits[0][0]} V`
+      : `${plural(plan.circuitTotal, 'circuit')}: ` + circuits.map(([v, n]) => `${n} at ${v} V`).join(', '))
   );
 }
 

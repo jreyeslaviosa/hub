@@ -186,6 +186,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .rigs .model { font-weight: 600; }
 .rigs .spec { grid-column: 2; font-size: 13px; color: var(--muted); }
+.rigs .warn {
+  grid-column: 2;
+  margin: 6px 0 4px;
+  padding: 5px 9px;
+  border-left: 3px solid var(--frame);
+  background: #fbe9e7;
+  font-size: 13px;
+  line-height: 1.4;
+}
 
 .load {
   display: grid;

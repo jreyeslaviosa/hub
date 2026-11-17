@@ -13,16 +13,26 @@
 
 // Power planning assumptions.
 export const power = {
-  volts: 110,            // US outlet voltage used for the amp figures
+  volts: 110,            // US outlet voltage, used unless a projector model sets its own volts
   continuousShare: 0.8   // projectors run for hours, so a circuit carries at most 80% of its breaker rating
 };
 
 // Projector models with the manufacturer's published power figures, in watts.
+// watts.max is required; leave out any mode the manufacturer doesn't publish.
+// volts: the supply voltage to plan for, when the projector can't run at power.volts.
 export const projectorModels = {
   'PT-RZ120': {
     name: 'Panasonic PT-RZ120',
     detail: '12,000 lm, WUXGA, laser',
     watts: { max: 1100, normal: 730, eco: 590, standby: 7 }
+  },
+  'HDX-W20-FLEX': {
+    name: 'Barco HDX-W20 FLEX',
+    detail: '20,000 lm, WUXGA, 3-chip DLP, 2.5 kW xenon lamp',
+    volts: 208,
+    watts: { max: 2850, standby: 8 },
+    warning: 'Runs on 200–240 V only, so it will not run from a 110 V outlet. Plan 208 V or 240 V circuits.',
+    note: 'Rental houses commonly feed it from a 30 A, L6-30 circuit.'
   }
 };
 
@@ -74,7 +84,9 @@ export default [
     folder: 'models/flow-back/',
     obj: 'facade_mural.obj',
     mtl: 'facade_mural.mtl',
-    projectors: [],
+    projectors: [
+      { section: '2', model: 'HDX-W20-FLEX', count: 2 }
+    ],
     measurements: [
       { label: 'Mural width', m: 18.0 },
       { label: 'Mural height', m: 22.0 },
