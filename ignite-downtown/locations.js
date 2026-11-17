@@ -116,10 +116,6 @@ export default [
     id: 'flow-canopy',
     code: '5',
     name: 'FLOW, canopy and wall',
-    place: 'Canopy edge band with the blank wall above',
-    summary:
-      'A long band along the front edge of the canopy, with a blank wall rising behind it. ' +
-      'Red frames mark both surfaces. The canopy depth behind the band is unknown.',
     basis: 'Estimated from a Street View photo, calibrated on the parked cars.',
     folder: 'models/flow-canopy/',
     obj: 'site_canopy_wall.obj',

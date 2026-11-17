@@ -324,12 +324,9 @@ function renderTotals() {
 }
 
 function renderSheet(site) {
-  sheetEl.replaceChildren(
-    el('p', 'code', site.code),
-    el('h1', '', site.name),
-    el('p', 'place', site.place),
-    el('p', 'summary', site.summary)
-  );
+  sheetEl.replaceChildren(el('p', 'code', site.code), el('h1', '', site.name));
+  if (site.place) sheetEl.append(el('p', 'place', site.place));
+  if (site.summary) sheetEl.append(el('p', 'summary', site.summary));
 
   renderPower(site);
 
