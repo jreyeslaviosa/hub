@@ -52,7 +52,8 @@ export const projectorModels = {
     lumens: 31000,
     volts: 208,
     watts: { max: 2870, standby: 4 },
-    warning: 'Runs on 200–240 V only, so it will not run from a 110 V outlet. Plan 208 V or 240 V circuits.'
+    warning: 'Plan 208 V or 240 V circuits (NEMA L6-30). It also runs on 110–120 V, but at only about 1/3 of the light.',
+    note: 'Average draw is 2,310 W in HIGH and 1,890 W in NORMAL. Power on over the network needs Standby mode set to NORMAL.'
   }
 };
 
@@ -225,7 +226,7 @@ export default [
     obj: 'hec_west_wall.obj',
     mtl: 'hec_west_wall.mtl',
     projectors: [
-      { section: '10b', model: 'PT-RZ31K', count: 3 }
+      { section: '10b', model: 'PT-RZ31K', count: 2 }
     ],
     measurements: [
       { label: 'Wall width', m: 27.432, status: 'published' },
