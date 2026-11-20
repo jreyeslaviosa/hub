@@ -101,6 +101,10 @@ function frame(direction) {
 }
 const ANGLED = new THREE.Vector3(0.62, 0.34, 1);
 const FRONT = new THREE.Vector3(0, 0.04, 1);
+const PLAN_ANGLED = new THREE.Vector3(0.5, 1.1, 0.9);
+const TOP = new THREE.Vector3(0, 1, 0.02);
+const isPlan = site => site?.view === 'plan';
+const angledFor = site => (isPlan(site) ? PLAN_ANGLED : ANGLED);
 
 async function load(site) {
   const ticket = ++loadCount;
@@ -115,7 +119,7 @@ async function load(site) {
     prepare(object);
     model = object;
     scene.add(model);
-    frame(ANGLED);
+    frame(angledFor(site));
     statusEl.textContent = '';
   } catch (error) {
     if (ticket !== loadCount) return;
@@ -126,8 +130,8 @@ async function load(site) {
 }
 
 // ---------- view controls ----------
-$('#view-front').addEventListener('click', () => frame(FRONT));
-$('#view-angle').addEventListener('click', () => frame(ANGLED));
+$('#view-front').addEventListener('click', () => frame(isPlan(current) ? TOP : FRONT));
+$('#view-angle').addEventListener('click', () => frame(angledFor(current)));
 marksButton.addEventListener('click', () => {
   showMarks = !showMarks;
   marksButton.setAttribute('aria-pressed', String(showMarks));
@@ -408,6 +412,7 @@ function select() {
     else button.removeAttribute('aria-current');
   }
   document.title = 'IGNITE 2027 Downtown: ' + site.name;
+  $('#view-front').textContent = isPlan(site) ? 'Top view' : 'Front view';
   renderSheet(site);
   load(site);
 }

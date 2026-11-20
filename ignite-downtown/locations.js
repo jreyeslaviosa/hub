@@ -13,6 +13,10 @@
 // stacks (optional): how many stacks the projectors are split into, e.g. count: 6, stacks: 2.
 // previz (optional): images for that section, e.g. [{ src: 'file.webp', title: 'What it shows' }].
 
+// view (optional): 'plan' for ground-level sites, so the viewer offers a top view instead of a front view.
+
+const FT = 0.3048;
+
 // Power planning assumptions.
 export const power = {
   volts: 110,            // US outlet voltage, used unless a projector model sets its own volts
@@ -144,6 +148,69 @@ export default [
       { label: 'Ground to top of wall', m: 35.5 }
     ],
     drawings: []
+  },
+  {
+    id: 'flow-plaza',
+    code: '6',
+    name: 'Flow Plaza',
+    place: 'Brick plaza by the palm tree line, next to the covered entrance with the Daniel Popper sculpture',
+    view: 'plan',
+    basis: 'Measured on the Google Maps aerial and Street View, converted from feet. ' +
+      'The plaza area is roughly 1,000 m² (10,800 ft²). Palms, pillar size and canopy depth in the model are placeholders.',
+    folder: 'models/flow-plaza/',
+    obj: 'flow_plaza.obj',
+    mtl: 'flow_plaza.mtl',
+    projectors: [],
+    measurements: [
+      { label: 'Plaza length, along the tree line', m: 230 * FT },
+      { label: 'Tree line to opposite side', m: 45.2 * FT },
+      { label: 'Tree line to end of the tiled floor', m: 44.1 * FT },
+      { label: 'Tree line to Daniel Popper sculpture', m: 52.1 * FT },
+      { label: 'Covered entrance, floor to ceiling', m: 28.7 * FT },
+      { label: 'Covered entrance, between pillars', m: 17.8 * FT }
+    ],
+    drawings: [
+      { src: '6_street_view.jpg', title: 'Street View with measurements' },
+      { src: '6_aerial_and_entrance.jpg', title: 'Aerial and covered entrance' }
+    ]
+  },
+  {
+    id: 'huizenga-circle',
+    code: '8a',
+    name: 'Huizenga Park, circle',
+    place: 'Circular planter at the Las Olas Blvd end of Huizenga Park',
+    view: 'plan',
+    basis: 'Measured on the Google Maps aerial, converted from feet. Check on site whether 15.6 m is the planter ' +
+      'alone or includes some paving.',
+    folder: 'models/huizenga-circle/',
+    obj: 'huizenga_circle.obj',
+    mtl: 'huizenga_circle.mtl',
+    projectors: [],
+    measurements: [
+      { label: 'Across the circle', m: 51.2 * FT },
+      { label: 'Circle edge to outer edge of the paving', m: 15.8 * FT }
+    ],
+    drawings: [{ src: '8a_aerial.jpg', title: 'Aerial with measurements' }]
+  },
+  {
+    id: 'huizenga-lawn',
+    code: '8b',
+    name: 'Huizenga Park, lawn',
+    place: 'Open lawn between the Las Olas circle and the Sweetwaters Restaurant walkway',
+    view: 'plan',
+    basis: 'Measured on the Google Maps aerial, converted from feet. The lawn area is roughly 2,400 m² ' +
+      '(25,700 ft²). The model\'s edge between the measured widths is approximate.',
+    folder: 'models/huizenga-lawn/',
+    obj: 'huizenga_lawn.obj',
+    mtl: 'huizenga_lawn.mtl',
+    projectors: [],
+    measurements: [
+      { label: 'Lawn length, circle to Sweetwaters walkway', m: 179 * FT },
+      { label: 'Width near the Las Olas circle', m: 90.5 * FT },
+      { label: 'Width at the middle', m: 158 * FT },
+      { label: 'Width near the Sweetwaters walkway', m: 168 * FT }
+    ],
+    drawings: [{ src: '8b_aerial.jpg', title: 'Aerial with measurements' }]
   },
   {
     id: 'fau-west-wall',

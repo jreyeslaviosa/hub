@@ -1,0 +1,54 @@
+newmtl ground
+Kd 0.25 0.25 0.25
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl brick
+Kd 0.55 0.24 0.2
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl lawn
+Kd 0.33 0.47 0.24
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl concrete
+Kd 0.7 0.7 0.7
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl wall
+Kd 0.92 0.9 0.86
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl trunk
+Kd 0.45 0.38 0.3
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl palm
+Kd 0.24 0.4 0.2
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl red
+Kd 1.0 0.0 0.0
+Ka 0 0 0
+d 1
+illum 1
+
+newmtl marker
+Kd 1.0 0.85 0.0
+Ka 0 0 0
+d 1
+illum 1
+
